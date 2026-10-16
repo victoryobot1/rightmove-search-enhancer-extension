@@ -18,6 +18,9 @@ const TOTAL_RE = /\b(total|gross|internal|g\.?i\.?a|overall|in all|combined|enti
 const HINT_RE = /\b(approx\w*|c\.|circa|extend\w*|measur\w*|offer\w*|provid\w*|compris\w*|floor ?area|living (space|area)|accommodation|size|footage|area|space)\b/;
 const NOT_HOUSE_RE = /\b(garden|plot|land|grounds|site|terrace|balcony|patio|decking|garage|outbuilding|annexe?|shed|cabin|workshop|office|storage|store|planning|extension|commercial|retail|shop|warehouse|parking|driveway)\b/;
 const ROOM_RE = /\b(bedroom|reception|kitchen|lounge|dining|bathroom|room)\b/;
+// "One bedroom apartment (434 sq ft)" describes the whole property, not a single room.
+const BEDROOM_COUNT_RE = /\b(\d+|one|two|three|four|five|six|seven|studio)[\s-]*(bed(room)?s?)\b/g;
+const PROPERTY_RE = /\b(apartment|flat|house|home|property|maisonette|duplex|penthouse|cottage|bungalow|studio|townhouse|residence)\b/;
 const SINGLE_FLOOR_RE = /\b(ground|first|second|third|lower|upper|top|basement)\s+floor\b/;
 const EXCLUDING_RE = /\b(exclud\w*|excl\.?|not including)\b/;
 const LIVING_AFTER_RE = /^\W*(of\s+)?(living|internal|accommodation|floor\s?space|interior)\b/;
@@ -43,11 +46,12 @@ function scoreCandidate(text, start, end) {
   let score = 0;
   if (TOTAL_RE.test(before)) score += 4;
   if (HINT_RE.test(nearBefore)) score += 2;
+  if (PROPERTY_RE.test(nearBefore.slice(-30))) score += 2;
   if (LIVING_AFTER_RE.test(after)) return score + 3;
 
   if (NOT_HOUSE_RE.test(nearBefore.slice(-25))) score -= 4;
   if (NOT_HOUSE_RE.test(after.slice(0, 15)) && !EXCLUDING_RE.test(after)) score -= 4;
-  if (ROOM_RE.test(nearBefore.slice(-25))) score -= 3;
+  if (ROOM_RE.test(nearBefore.slice(-25).replace(BEDROOM_COUNT_RE, ' '))) score -= 3;
   if (SINGLE_FLOOR_RE.test(nearBefore.slice(-30))) score -= 1;
   return score;
 }
