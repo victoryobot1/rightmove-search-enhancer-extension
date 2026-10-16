@@ -1,0 +1,43 @@
+.rmse-size {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+  white-space: nowrap;
+  color: #00315a;
+  background: #e3f4f0;
+  border: 1px solid #9fd8c9;
+}
+
+.rmse-size[data-state='derived'] {
+  background: #fff6dc;
+  border-color: #f1d27a;
+  color: #5a4000;
+}
+
+.rmse-size[data-state='loading'] {
+  background: #f2f3f5;
+  border-color: #dcdfe4;
+  color: #6b7280;
+  font-weight: 500;
+  animation: rmse-pulse 1.2s ease-in-out infinite;
+}
+
+.rmse-size[data-state='none'],
+.rmse-size[data-state='error'] {
+  background: #f2f3f5;
+  border-color: #dcdfe4;
+  color: #6b7280;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+@keyframes rmse-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}

@@ -1,0 +1,122 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Rightmove Search Enhancer</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --fg: #1f2937;
+        --muted: #6b7280;
+        --bg: #fff;
+        --line: #e5e7eb;
+        --accent: #00a88f;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --fg: #e5e7eb;
+          --muted: #9ca3af;
+          --bg: #1f2125;
+          --line: #374151;
+        }
+      }
+      body {
+        width: 300px;
+        margin: 0;
+        padding: 14px 16px;
+        font: 13px/1.4 system-ui, sans-serif;
+        color: var(--fg);
+        background: var(--bg);
+      }
+      h1 {
+        font-size: 15px;
+        margin: 0 0 10px;
+      }
+      label.row {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+        padding: 6px 0;
+      }
+      label.row input {
+        margin-top: 2px;
+        accent-color: var(--accent);
+      }
+      small {
+        display: block;
+        color: var(--muted);
+      }
+      select {
+        margin-left: auto;
+      }
+      hr {
+        border: 0;
+        border-top: 1px solid var(--line);
+        margin: 8px 0;
+      }
+      footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: var(--muted);
+        margin-top: 6px;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      #unsupported p {
+        margin: 0 0 12px;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Rightmove Search Enhancer</h1>
+
+    <section id="unsupported" hidden>
+      <p>This extension only works on rightmove.co.uk. Open a Rightmove property search to see floor areas on each listing.</p>
+      <button id="openRightmove">Go to Rightmove</button>
+    </section>
+
+    <section id="settings" hidden>
+
+    <label class="row"><input type="checkbox" id="enabled" /> Show floor area on search results</label>
+    <label class="row">
+      Units
+      <select id="unit">
+        <option value="sqft">sq ft</option>
+        <option value="sqm">m²</option>
+        <option value="both">Both</option>
+      </select>
+    </label>
+    <label class="row"><input type="checkbox" id="showPricePerSqft" /> Show £ per sq ft</label>
+
+    <hr />
+
+    <label class="row">
+      <input type="checkbox" id="ocrFloorplans" />
+      <span>Read floorplan images<small>Uses on-device OCR when the listing has no stated size.</small></span>
+    </label>
+    <label class="row">
+      <input type="checkbox" id="scanBrochures" />
+      <span>Read brochures hosted on Rightmove</span>
+    </label>
+    <label class="row">
+      <input type="checkbox" id="externalBrochures" />
+      <span
+        >Also read brochures on agents' websites<small
+          >Chrome will ask for permission to access other sites. Only brochure links from the listing are fetched.</small
+        ></span
+      >
+    </label>
+
+    <hr />
+    <footer>
+      <span id="stats">…</span>
+      <button id="clear">Clear cache</button>
+    </footer>
+    </section>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
