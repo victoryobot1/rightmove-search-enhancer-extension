@@ -1,4 +1,4 @@
-// Adds total floor area (and £/sq ft) to each card on Rightmove search results.
+// Adds total floor area (and £/sq ft) to Rightmove search results and property pages.
 (() => {
   const SQFT_PER_SQM = 10.7639;
   // Same range as extract.js (content scripts can't import modules). Anything outside it,
@@ -81,12 +81,15 @@
     return ft;
   }
 
-  function salePrice(card) {
-    const text = card.querySelector('[data-testid="property-price"]')?.textContent || '';
+  function parseSalePrice(text) {
     if (/pcm|pw|per\s+(week|month)/i.test(text)) return null; // rentals
-    const m = text.match(/£\s?([\d,]+)/);
+    const m = String(text).match(/£\s?([\d,]+)/);
     return m ? Number(m[1].replace(/,/g, '')) : null;
   }
+
+  const cardPrice = (card) => parseSalePrice(card.querySelector('[data-testid="property-price"]')?.textContent || '');
+  const pagePrice = () => parseSalePrice(document.querySelector('[data-testid="primaryPrice"]')?.textContent || '');
+  const pricePerSqft = (price, r) => (settings.showPricePerSqft && price ? `£${fmt(price / r.sqft)}/sq ft` : '');
 
   // Badge colour follows the confidence score.
   function confidenceBand(confidence) {
@@ -96,7 +99,7 @@
     return 'verylow';
   }
 
-  function badgeContent(card, r) {
+  function badgeContent(r, price) {
     if (!r) return { state: 'loading', text: 'Size…', title: 'Looking up floor area' };
 
     if (r.status === 'found') {
@@ -104,8 +107,8 @@
       const estimated = r.source === 'roomEstimate';
       const derived = r.source !== 'listing' || r.fromMetric;
       let text = `${estimated ? 'est. ' : derived ? '≈ ' : ''}${formatArea(r)}`;
-      const price = settings.showPricePerSqft && salePrice(card);
-      if (price) text += ` · £${fmt(price / r.sqft)}/sq ft`;
+      const perSqft = pricePerSqft(price, r);
+      if (perSqft) text += ` · ${perSqft}`;
 
       let title;
       if (estimated) {
@@ -142,6 +145,14 @@
     );
   }
 
+  function createBadge(id, extraClass) {
+    const badge = document.createElement('span');
+    badge.className = extraClass ? `${BADGE_CLASS} ${extraClass}` : BADGE_CLASS;
+    badge.dataset.id = id;
+    badge.addEventListener('click', onBadgeClick);
+    return badge;
+  }
+
   function renderCard(card) {
     const id = propertyIdFromCard(card);
     const mount = id && mountPoint(card);
@@ -149,15 +160,15 @@
 
     let badge = card.querySelector(`.${BADGE_CLASS}`);
     if (!badge) {
-      badge = document.createElement('span');
-      badge.className = BADGE_CLASS;
-      badge.addEventListener('click', onBadgeClick);
+      badge = createBadge(id);
       mount.appendChild(badge);
       visibility.observe(card);
     }
     badge.dataset.id = id;
+    updateBadge(badge, badgeContent(results.get(id), cardPrice(card)));
+  }
 
-    const { state, band = '', text, pill = '', title } = badgeContent(card, results.get(id));
+  function updateBadge(badge, { state, band = '', text, pill = '', title }) {
     const key = `${state}|${band}|${text}|${pill}`;
     if (badge.dataset.key !== key) {
       badge.dataset.key = key;
@@ -186,13 +197,65 @@
     request(id, true);
   }
 
+  // -------------------------------------------------------------------------
+  // Property page (/properties/123): fill Rightmove's own SIZE slot in the key-facts strip.
+
+  const PAGE_BADGE_CLASS = `${BADGE_CLASS}--page`;
+  const REPLACED_ATTR = 'data-rmse-replaced';
+
+  function propertyPageId() {
+    return location.pathname.match(/^\/properties\/(\d+)/)?.[1] ?? null;
+  }
+
+  function renderPropertyPage() {
+    const id = propertyPageId();
+    if (!id) return;
+    if (!results.has(id)) request(id, false);
+
+    const sizeText = document.querySelector('[data-testid="info-reel-SIZE-text"]');
+    const slot = sizeText?.parentElement; // the <dd> under "SIZE"
+    const priceBox = document.querySelector('[data-testid="primaryPrice"]')?.parentElement;
+    const mount = slot || priceBox;
+    if (!mount) return;
+
+    const r = results.get(id);
+    const price = pagePrice();
+    let content = badgeContent(r, price);
+
+    if (slot && r?.status === 'found' && r.source === 'listing') {
+      // Rightmove already shows the agent's figure here; just add £/sq ft.
+      slot.removeAttribute(REPLACED_ATTR);
+      const perSqft = pricePerSqft(price, r);
+      if (!perSqft) return removePageBadge();
+      content = { ...content, text: perSqft, pill: '' };
+    } else if (slot) {
+      // "Ask agent" (or an implausible agent figure): show ours in its place.
+      slot.setAttribute(REPLACED_ATTR, '');
+    }
+
+    let badge = document.querySelector(`.${PAGE_BADGE_CLASS}`);
+    if (!badge || badge.parentElement !== mount) {
+      badge?.remove();
+      badge = createBadge(id, PAGE_BADGE_CLASS);
+      mount.appendChild(badge);
+    }
+    badge.dataset.id = id;
+    updateBadge(badge, content);
+  }
+
+  function removePageBadge() {
+    document.querySelector(`.${PAGE_BADGE_CLASS}`)?.remove();
+  }
+
   function renderAll() {
     if (!settings.enabled) return;
     findCards().forEach(renderCard);
+    renderPropertyPage();
   }
 
   function removeAll() {
     document.querySelectorAll(`.${BADGE_CLASS}`).forEach((el) => el.remove());
+    document.querySelectorAll(`[${REPLACED_ATTR}]`).forEach((el) => el.removeAttribute(REPLACED_ATTR));
   }
 
   // -------------------------------------------------------------------------
@@ -225,6 +288,7 @@
 
   function rerender(id) {
     for (const card of findCards()) if (propertyIdFromCard(card) === id) renderCard(card);
+    if (propertyPageId() === id) renderPropertyPage();
   }
 
   // -------------------------------------------------------------------------

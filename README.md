@@ -21,6 +21,8 @@ Each card gets a badge next to the beds/baths icons:
 | `est. 715 sq ft` `75%` | No total anywhere, so it's estimated from the floorplan's room dimensions |
 | `Size n/a` / `Size ?` (grey) | Nothing found / lookup failed — click to retry |
 
+The same badge appears on property pages, in the **SIZE** slot of Rightmove's key-facts strip. When Rightmove says "Ask agent", the badge replaces that text. When the agent did give a size, Rightmove's figure stays and the badge adds the £/sq ft.
+
 Every size has a confidence score, which sets the badge colour: **green** ≥85%, **amber** 65–84%, **orange** 45–64%, **red** <45%. Hover to see where the figure came from. For estimates, the tooltip shows the full working: each room's dimensions and area, rooms that were assumed or excluded, the hallway/wall allowance, and how the confidence score was built up.
 
 ## How it finds the size

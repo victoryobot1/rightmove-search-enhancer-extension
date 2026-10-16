@@ -70,3 +70,14 @@
     opacity: 0.55;
   }
 }
+
+/* Property page: the badge sits in (or replaces the text of) Rightmove's SIZE slot. */
+[data-rmse-replaced] > [data-testid='info-reel-SIZE-text'] {
+  display: none;
+}
+
+.rmse-size--page {
+  margin-left: 0;
+  margin-top: 2px;
+  font-size: 14px;
+}
