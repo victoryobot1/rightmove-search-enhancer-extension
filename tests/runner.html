@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Extension tests</title>
+<script type="module">
+  // Runs each suite in its own iframe, so suites that stub globals (fetch, chrome) can't
+  // affect each other, then posts everything back to tests/run.py.
+  const SUITE_TIMEOUT_MS = { ocr: 480_000 };
+  const suites = (new URLSearchParams(location.search).get('suites') || '').split(',').filter(Boolean);
+  const all = [];
+
+  for (const suite of suites) {
+    const frame = document.createElement('iframe');
+    const outcome = await new Promise((resolve) => {
+      const timer = setTimeout(() => resolve({ suite, crash: 'timed out' }), SUITE_TIMEOUT_MS[suite] ?? 60_000);
+      addEventListener('message', function onMessage(event) {
+        if (event.source !== frame.contentWindow) return;
+        clearTimeout(timer);
+        removeEventListener('message', onMessage);
+        resolve(event.data);
+      });
+      frame.src = `suite.html?name=${encodeURIComponent(suite)}`;
+      document.body.appendChild(frame);
+    });
+    frame.remove();
+    all.push(outcome);
+  }
+
+  await fetch('/results', { method: 'POST', body: JSON.stringify(all) });
+</script>
+<body></body>

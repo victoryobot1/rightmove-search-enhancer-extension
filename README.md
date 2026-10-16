@@ -37,6 +37,8 @@ For every card that scrolls near the viewport, the background worker fetches the
 
 Brochures hosted on `rightmove.co.uk` are read by default. Brochures on agents' own sites (Reapit, Vebra, Foxtons, …) need the **"Also read brochures on agents' websites"** option in the popup, which asks Chrome for the extra permission.
 
+To watch the lookup queue, open `chrome://extensions` and click **service worker** under this extension. Every queue event is logged with a `[queue]` prefix: queued, start, each stage, done, cancelled, cache hit. In that console, `rmse.queue()` prints what's running and waiting, and `rmse.logging = false` turns the logging off.
+
 Results are cached in `chrome.storage.local` for 14 days (1 day for "not found", since agents often add floorplans later). At most two property pages are fetched at a time.
 
 ## Files
@@ -53,6 +55,7 @@ src/
   popup.html / .js           settings
   settings.js                defaults
 vendor/                      tesseract.js 5.1.1 (+ core, eng data), pdfjs-dist 4.10.38
+tests/                       run with `python3 tests/run.py` (see tests/README.md)
 ```
 
 ## Notes and limitations

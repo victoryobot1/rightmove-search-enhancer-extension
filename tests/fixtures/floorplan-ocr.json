@@ -1,0 +1,206 @@
+{
+ "note": "Tesseract output for sample floorplans; truth = stated total on the plan, else the listing Size field.",
+ "plans": [
+  {
+   "id": "173701142",
+   "bedrooms": 4,
+   "truthSqft": 2089,
+   "ocrTexts": [
+    "[—\n\n==\n\n| 1\n\n—\n\n= 8\n\n1:2 6s\n\n[ESSA\n\nFh\n\nvm\n\n—\n\nBl Ee\n\nGround Floor\n\nFirst Floor\n\nSecond Floor\n\nFloor ares 1234 sqm. (1,328 sq 1) approx\n\nFloor seen 40.3 sqm (531 sq Nt) appeox\n\nFlooc seen 21.4\n\nsqm (231\n\n3q i) approx\n\nTotal floor area 194.1 sqm. (2,089 sq it ) approx\n\nThis plan is for Bustration purposes only and mary not be representative of the property. Plan not 10 scale\n\nPowered by audoagent com\n"
+   ]
+  },
+  {
+   "id": "173742830",
+   "bedrooms": 4,
+   "truthSqft": 2034,
+   "ocrTexts": [
+    "«De\n\n- »\n\nIL)\n\nBedroom 3\n\nne\n\nLe\n\nXJ\n\n£5Tm x 3 25m man\n\n(FTN\n\n=\n\nHAchen Ding Rove\n\na=\n\npl) O\n\nOw ed 20\n\nrawr\n\nfio\n\nBathroom\n\n0)\n\nox\n\n\"Nel\n\nmm\n\na\n\n==\n\nLe]\n\nEezid\n\n——\n\nReception Room\n\nBedroom 4\n\n373m x 3 12m man\n\nryrawnr\n\nrw\n\n381m x 3 10m\n\nBedroom 1\n\n6 Sdn man x 4 57m man\n\n(Fes)\n\nBedroom 2\n\nRecepuon Room\n\n& 290s moan 1 3 10m\n\nrae)\n\n44% x 3 TI man\n\n(Wyse y\n\noo -—\n\n[8\n\n»\n\na\n\nGround Floor\n\nFirst Floor\n\nSecond Floor\n\nFloor area 70.0 sq. m. (753 sq. I.) approx\n\nFloor area 72.0 sq. m. (775 sq. I.) approx\n\nFloor area 47.0 sq. m. (506 sq. It.) approx\n\nTotal floor area 189.0 sq. m. (2,034 sq. NN.) approx\n\nThis plan is for illustration purposes only and may not be representative of the property. Plan not to scale\n\nPowered by audioagent com\n"
+   ]
+  },
+  {
+   "id": "87541038",
+   "bedrooms": 2,
+   "truthSqft": 882,
+   "ocrTexts": [
+    "IEE EE —\n\n0 0 00 |\n\n®\n\nSNS\n\nAK\n\nBEDROOM\n\nRECEPTION ROOM/KITCHEN\n\n18'5 x 182\n\n19'2 x 9'4\n\na\n\n5.62m x 5.54m\n\n5.84m x 2.84m\n\nBALCONY\n\n-xtends to 4'\n\nNS\n\nws\n\nA\n\nol\n\npp\n\nBEDROOM\n\n126 x 11'6\n\n3.81m x 3.51m\n\n=|\n\nTWENTYSEVENTH FLOOR\n\n882 SQ FT/82.00 SQ M\n\nThis plan has been drawn for illustrative and identification purposes only.\n"
+   ]
+  },
+  {
+   "id": "87779805",
+   "bedrooms": 1,
+   "truthSqft": 579,
+   "ocrTexts": [
+    "Leysfield Road\n\nApproximate Gross Internal Area = 53.9 sqm / 579 sq ft\n\nBedroom\n\nKitchen /\n\nReception Room\n\n4.23 x 3.87\n\n5.87 x 4.33\n\n1911\" x 128\"\n\n19'3\" x 14'2\"\n\nDn\n\nSecond Floor\n\nShower Room\n\n1.78 x 1.62\n\n50.8 sq m/ 546 sq ft\n\n510\" x 5'4\"\n\nIN\n\nUp\n\nFirst Floor\n\n3.1sqm/33 sqft\n\nAlthough every attempt has been made to ensure accuracy, all measurements are approximate.\n\nThe floorplan is for illustrative purposes only and not to scale.\n\nwww.prspective.co.uk\n\nCLEMENTS\n\ni\n\nHABBA\n"
+   ]
+  },
+  {
+   "id": "88958562",
+   "bedrooms": 2,
+   "truthSqft": 1373,
+   "ocrTexts": [
+    ".ep\n\ni.\n\n——\n\nLR Ed A\n\nDengtes restricted |\n\n+ head\n\nSedaata\n\nCcodaada\n\n[Ere ———\n\n/\\\n\nSEomooaeos\n\nI\n\nBedroom\n\ncsmcesasan\n\nBedroom\n\n12'3 (3.73) max\n\n—\n\nReception Room\n\n14'6 (4.42) max\n\nx11'4 (3.45)\n\nSb\n\n22'10 (6.96) max\n\nx 19'1 (5.82) max\n\nx 12'3 (3.73) max\n\nI\n\nR—\n\nhe cssaanuan\n\n_—\n\n=\n\nTl\n\nFa\n\nFn\n\nI\n\n®)\n\npein\n\n—\n\nom ree dd\n\nod)\n\nSecond Floor\n\nA —\n\nI~\n\noh ®)\n\nessssssasa\n\nli at\n\nKitchen\n\n12'7 (3.84)\n\nsssssassss\n\nx7'9 (2.36)\n\neecaccnaas\n\n=\n\nRE.\n\nore\n\nmt\n\nssesasasas\n\nDining Room\n\n£4\n\nfo ww\n\n18'11 (5.77)\n\nPN\n\npS Ep pp\n\nx10'10 (3.30)\n\nBalcony\n\nsevens man\n\nThird Floor\n\nGondar Gardens, NW6\n\nApproximate Area = 1373 sq ft / 127.5 sqm\n\nLimited Use Area(s) = 163 sq ft / 15.1 sqm\n\nKinleigh Folkard & Hayward\n\nFor identification only - Not to scale\n\nEE eee\n\nFloor plan produced in accordance with RICS Property Measurement 2nd Edition,\n\nIncorporating International Property Measurement Standards (IPMS2 Residential). © nichecom 2026.\n\nProduced for Kinleigh Folkard & Hayward. REF: 1463971\n"
+   ]
+  },
+  {
+   "id": "89286939",
+   "bedrooms": 2,
+   "truthSqft": 538,
+   "ocrTexts": [
+    "vv\n\nApprox. Gross Internal Area\n\nOakleigh Road North, N20\n\nDate of illustration: 30/05/2026\n\nAustin Chambers & Co\n\n537.541 /49.94m?\n\nBathroom\n\nll\n\nKitchen\n\nLiving Room\n\n3.05x3.60\n\nathroom\n\n69/x11.08\n\nBedroom\n\n275x293\n\nBedroom\n\n3.31 x3.89\n\n-\n\n-\n\n*Approx. Gross Internal Area excludes restricted head height area\n\n[=]\n\nLi\n\nC\n\nF\n\nnM\n\nir\n\nmate ar\n\n5)\n\ntt\n\nra\n\nrpla\n\nuld\n\n>\n\n)?\n\nSRY\n"
+   ]
+  },
+  {
+   "id": "89773650",
+   "bedrooms": 1,
+   "truthSqft": 439,
+   "ocrTexts": [
+    "Brooksbys Walk, E9\n\n40.8 sqm /439 sq ft\n\nnn\n\nFeleZy Lord\n\nIN 444 a\n\nReception /\n\nDining Room /\n\nKitchen\n\n23'7\" X 1 4'1 \"\n\n7.20m x 4.30m\n\nBedroom\n\nW\n\n1 7 Hide X 8'8\"\n\n3.54m x 2.65m\n\nWwW =\n\nBathroom\n\n8'5\" x 6'10\"\n\n2.56m x 2.09m\n\nSecond Floor\n\nts pn i fu at 0 5 Oo 8 pp 4 fe 0 ec $4 0 45 $9 fo A ma a 8 em 0 SF 0 0 a i Ta 0 Se 9 ep a 8\n\n40.8 sqm / 439 sq ft\n\n09sqm/9sqft\n\n0.0sqm/0.0sqft\n\n0.0sgqm/0.0sqft\n\nDisclaimer : Floorplan measurements are approximate and are for illustrative purposes only.\n\nMaison\n\nWhile we do not doubt the floorplan accuracy and completeness, you or your advisors should\n\nconduct a careful, independent investigation of the property in respect of monetary valuation\n\nVUE\n"
+   ]
+  },
+  {
+   "id": "89830356",
+   "bedrooms": 3,
+   "truthSqft": 1101,
+   "ocrTexts": [
+    "Balcony\n\nAl\n\n18'8\" x 3'8\"\n\n»;\n\n—\n\nS—\n\n(5.69m x 1.12m)\n\n~.\n\n—_—\n\n~\n\n—\n\n—\n\n—]\n\n—\n\na\n\nN/\n\nBedroom\n\nBedroom\n\n17115 78\"\n\n17'2\" x 7'8\"\n\n(5.23m x 2.34m)\n\nKitchen/Reception Room\n\n(5.46m x 2.34m)\n\n22'10\" x 17'0\"\n\n(6.96m x 5.18m)\n\nfil)\n\n|]\n\nHall\n\n23'3\" x 3'9\"\n\n(7.09m x 1.14m)\n\nBedroom\n\n157\" x 1311\"\n\n(4.75m x 4.24m)\n\nBathtoom |\n\n9'7\" x 5'9\"\n\n(2.92m x 1.75m)\n\n—\n\n)]\n\n= >\n\nGH\n\nZH\n\nFifth Floor\n\n|\n\n|\n\nEn-suite\n\n9'7\" x 4'5\"\n\n{(2.92m x 1.35m) |\n\nApprox. Gross Internal Floor Area 1101 sq. ft / 102.28 sq. m\n\nFloor plan measurements are approximate and are for illustrative purposes only. While we do not doubt the floor plan accuracy\n\nand completeness, you or your advisors should conduct a careful, independent investigation of the property in respect of\n\nmonetary valuation.\n\nProduced by Elements Property\n"
+   ]
+  },
+  {
+   "id": "90960273",
+   "bedrooms": null,
+   "truthSqft": 217,
+   "ocrTexts": [
+    "Shepherds Bush Green\n\nL.ondon\n\nW12\n\n+.\n\nApprox. Gross Internal Area = 20m square\n\n= ( 217ft square)\n\nJem=u|\n\n¢\n\nStudio Reception\n\n(5\n\n3.06 x 4.63m\n\n10\" x 15'1\n\n]\n\nHip\n"
+   ]
+  },
+  {
+   "id": "91689552",
+   "bedrooms": 1,
+   "truthSqft": 761,
+   "ocrTexts": [
+    "[ole]\n\nOO\n\nKitchen\n\nthroém\n\n733x173 m\n\n3x 2.29\n\n24'0\" X 57\"\n\n8\" x 7'6\"\n\nEn)Suite\n\no\n\nApproximate total area\n\n1.41 x\n\n77\n\n<5\n\n70.7 m?\n\n761 ft?\n\nLiving Room\n\n6.69 x 4.07 m\n\nBedroom\n\nOffice\n\n21\"1\"x13'4\"\n\n4.01x3.80m\n\n|\n\n—\n\n2.66 x 2.65 m\n\n13'1\" x 12'5\"\n\n8\" x 8'8\"\n\nye\n\nCloset\n\n1.43x1.52m\n\n'8\" x 5'0\"\n\n(1) Excluding balconies and terraces\n\nWhile every attempt has been made to\n\nensure accuracy, all measurements are\n\napproximate, not to scale. This floor\n\nplan is for illustrative purposes only.\n\nCalculations are based on RICS IPMS 3C\n\nstandard.\n\nGIRAFFE360\n"
+   ]
+  },
+  {
+   "id": "91695999",
+   "bedrooms": 3,
+   "truthSqft": 891,
+   "ocrTexts": [
+    "i\n\nGARDEN\n\n44'2 x 382\n\n13.47Tmx 11.64m\n\nos\n\n= REDUCED HEADROOM BELOW 1.5M/ 50\n\ni\n\nKITCHEN\n\nBEDROOM 2\n\n106 x6'1\n\n107 x70\n\n3.0mx211m\n\n3.2mx213m\n\nUP\n\nUP\n\nIN\n\nDN\n\nww.\n\nDN\n\nRECEPTION\n\nROOM\n\nBEDROOM 3\n\n167 x 106\n\nBEDROOM 1\n\n134 x 107\n\n506mx321m\n\n121x107\n\n407mx 3.2m\n\n360mx3.2m\n\nGROUND FLOOR\n\nFIRST FLOOR\n\nSECOND FLOOR\n\n328SQFT/30.5SQM\n\n325SQFT/302SQM\n\n238SQFT/221SQM\n\nAPPROXIMATE GROSS INTERNAL AREA\n\n891 SQFT/828 SQM\n\nThie plan has been drawn forilluskative and idenffication purposes only\n"
+   ]
+  },
+  {
+   "id": "92500281",
+   "bedrooms": 3,
+   "truthSqft": 1110,
+   "ocrTexts": [
+    "Linden Way, London, N14\n\nApproximate Area = 979 sq ft / 90.9 sqm\n\n(=\n\nGarage = 131sqft/12.1sgm\n\nTotal = 1110 sq ft / 103 sq m\n\nFor identification only - Not to scale\n\nRear Garden\n\nApproximate\n\n28'6 (8.69)\n\nx 25'6 (7.77)\n\n[ME]\n\nitchen\n\n9'4 (2.84)\n\nBedroom 3\n\nXx 711 (2.4\n\n9'4 (2.84)\n\nBedroom 2\n\nx 7'11 (2.42)\n\n12'8 (3.85)\n\nx 11'2 (3.40) max\n\nDown—+\n\n==\n\nGarage\n\n17'7 (5.36)\n\nx 7'5 (2.27)\n\nBedroom 1\n\nReception Room\n\n13'4 (4.06)\n\n29'4 (8.95) max\n\nx 11'2 (3.40)\n\nGs\n\nx 11'3 (3.42) max\n\nE\n\nLi\n\nI\n\nM\\\n\nj|\n\nFIRST FLOOR\n\n| [=\n\nFront Garden\n\nApproximate\n\n26'5 (8.04)\n\nx 20' (6.09)\n\nGROUND FLOOR\n\nd\n\n) Ir\n\nn\n\nSur\n\nIF\n\nil\n"
+   ]
+  },
+  {
+   "id": "92521782",
+   "bedrooms": 2,
+   "truthSqft": 746,
+   "ocrTexts": [
+    "Lyric Road\n\nJAMES\n\nApproximate Gross Internal Area = 746 sq ft / 69.3 sqm\n\n(Excluding Reduced Headroom)\n\nANDERSON\n\nReduced Headroom =5sqft/0.5sqm\n\nTotal = 751 sq ft / 69.8 sqm\n\ni ata ii\n\nN\n\ni\n\n}\n\nX\n\nV\n\nGarden\n\n14.50 x 2.81\n\nar 7x93\n\nf-\n\n(Approx)\n\n-\n\n3\n\nLEC\n\nKitchen /\n\nDining Room\n\n534x413\n\n—a\n\n176x137\n\n0\n\n&-\n\n—\\\n\nBedroom\n\n381x335\n\n12276x11°0\n\nByers\n\nBedroom/\n\nReception\n\nRoom\n\n434x381\n\n14'3x12'6\n\nAl\n\nIN\n\nGround Floor\n\nThis plan is not to scale and must be used as layout guidance only. All measurements and areas are approximate\n\nand should not be relied upon to provide accurate information. This plan must not be relied upon when making\n\nproperty valuations, design considerations or any other such relevant decisions. We accept no responsibility or\n\nliability (whether in contract, tort or otherwise) in relation to any loss whatsoever arising from or in connection with\n\nany use of this plan or the adequacy, accuracy or completeness of it or any information within it\n"
+   ]
+  },
+  {
+   "id": "92871045",
+   "bedrooms": 2,
+   "truthSqft": 956,
+   "ocrTexts": [
+    "CHERRYWOOD LANE\n\nAPPROXIMATE TOTAL INTERNAL FLOOR AREA: 956 SQFT - 88.85 SQM\n\n(INCLUDING EAVES STORAGE)\n\nAPPROXIMATE GROSS INTERNAL FLOOR AREA OF EAVES STORAGE: 34 SQFT - 3.14 SQM\n\n|\n\n8\n\nAX\n\nA\\\n\nN\\\n\nHl\n\nBEDROOM\n\n19%\" x 19'1\"\n\n5.92 x5.81M\n\n=\n\nPm\n\n-----\n\nSECOND FLOOR\n\nBEDROOM\n\n12'x 111\"\n\n3.63 x3.3TM\n\nNN\n\nA\n\nil\n\nai\n\nil\n\na.\n\n[4 |\n\nRECEPTION ROOM\n\nKITCHEN\n\n16'x 11'3\"\n\n109\" x 8\n\n4.85 x 3.40M\n\n24x244\n\nUJ\n\n“.,\n\nNg\n\n%\n\nGROUND FLOOR\n\nENTRANCE\n\nFIRST FLOOR\n\nFOR ILLUSTRATION PURPOSES ONLY\n\nTHIS FLOOR PLAN SHOULD BE USED AS A GENERAL OUTLINE FOR GUIDANCE ONLY AND DOES NOT CONSTITUTE IN WHOLE OR IN PART AN OFFER OR CONTRACT.\n\nANY INTENDING PURCHASER OR LESSEE SHOULD SATISFY THEMSELVES BY INSPECTION, SEARCHES, ENQUIRIES AND FULL SURVEY AS TO THE CORRECTNESS OF EACH STATEMENT\n\nANY AREAS, MEASUREMENTS OR DISTANCES QUOTED ARE APPROXIMATE AND SHOULD NOT BE USED TO VALUE A PROPERTY OR BE THE BASIS OF ANY SALE OR LET.\n"
+   ]
+  },
+  {
+   "id": "93129384",
+   "bedrooms": 1,
+   "truthSqft": 375,
+   "ocrTexts": [
+    "R\n\nROSINDALE\n\nPAVITT\n\nBathroom\n\n4'6\" x 511\"\n\n1.37x1.82m\n\nhl\n\ni\n\nT\n\nKitcl\n\nn\n\n74\" 6'0\"\n\n(0]¢)\n\nBedroom\n\n26 x 1.841\n\n[e]e)\n\n9'6\" x 9'0\"\n\nApproximate total area”\n\n2:91 x 2.75'm\n\nKitchen / Living Area\n\n375 ft?\n\n—\n\n34.9 m?\n\n711\" x 131\"\n\n|\n\n243x4.01m\n\n7i9h X16 SE\n\n2.37x2.05m\n\n|\n\nEJANMVA HH BE\n\nHallway\n\n71\" x 2'8\"\n\n2.17x0.83m\n\n(1) Excluding balconies and terraces\n\nCalculations reference the RICS IPMS.\n\n3 standard. Measurements are\n\napproximate and not to scale. This\n\nfloor plan is intended for illustration\n\nonly.\n\n“Ke\n\nGIRAFFE360\n"
+   ]
+  },
+  {
+   "id": "93681894",
+   "bedrooms": 4,
+   "truthSqft": 1102,
+   "ocrTexts": [
+    "Kitchen\n\n3.51 x3.26m\n\nBathroom\n\n1.46 x 2.40m\n\n11'6\" x 10'8\"\n\nBedroom 4\n\n410\" x 711\"\n\n1.89 x 3.28m\n\nBedroom 3\n\n6'2\" x 10'9\"\n\n3.51 x3.28m\n\n11'6\" x 10'9\"\n\nwC\n\nSt\n\nHallway\n\nLanding\n\nLanding\n\nReception\n\n2.17 x3.97m\n\n7'2\" x 13'0\"\n\nBedroom 1\n\nBedroom 2\n\n3.51 x3.15m\n\n3.51 x3.15m\n\n11'6\" x 10'4\"\n\n11'6\" x 10'4\"\n\nPorch\n\nIl\n\nI\n\nSecond Floor\n\nGround Floor\n\nFirst Floor\n\nArea: 33.7 m?... 363 ft?\n\nArea: 35.5 m? ... 382 ft?\n\nArea: 33.2 m*... 358 ft?\n\nPINDROP PROPERTY\n\nTotal Area: 102.4 m? ... 1102 ft?\n\nAll measurements are approximate and for display purposes only\n",
+    "-\n\nKitchen =e\n\n351 x3.26m\n\n-\n\n—-\n\nBE\n\n-\n\n= 116\" 21S =\n\n-\n\n=\n\n-\n\n—re\n\nuy\n\nwa\n\n=N\n\nEs =)\n\n— ea\n\n[LSS\n\nHallway\n\n[a\n\n-n\n\nwil\n\na\n\n17 x 3.97m DN\n\nea\n\n-\n\n7'2\" x 13'0\"\n\n\\\n\na\n\n>\n\nPorch\n\ned\n\na\n\na\n\n-_—. ty\n\nSecond Floor\n\nGround Floor\n\nFirst Floor\n\nArea: 35.5 m? ... 382 ft?\n\nArea: 33.2 m? ... 358 ft?\n\nArea: 33.7 m? ... 363 ft?\n\nTotal Area: 102.4 m? ... 1102 ft?\n\nAll measurements are approximate and for display purposes only\n"
+   ]
+  },
+  {
+   "id": "94142151",
+   "bedrooms": 2,
+   "truthSqft": 720,
+   "ocrTexts": [
+    "Approx Gross Internal Area\n\n67sqm/720 sqft\n\nBedroom 2\n\n3.87m x 2.60m\n\nBedroom 1\n\n12'8\" x 8'6\"\n\n4.40m x 3.85m\n\n14'5\" x 12'8\"\n\n|\n\nLounge Diner\n\n3.68m x 5.71m\n\n12'1\" x 18'9\"\n\nBathroom\n\n2.70m x 2.01m\n\n8'10\" x 6'7\"\n\nKitchen\n\n1.98m x 2.98m\n\n»\n\n6'6\" x 9'g\"\n\nFloorplan\n\nThis floorplan is only for illustrative purposes and is not to scale. Measurements of rooms, doors, windows, and any items are approximate\n\nand no responsibility is taken for any error, omission or mis-statement. Icons of items such as bathroom suites are representations only and\n\nmay not look like the real items. Made with Made Snappy 360.\n"
+   ]
+  },
+  {
+   "id": "94378818",
+   "bedrooms": 5,
+   "truthSqft": 2086,
+   "ocrTexts": [
+    "Sedlescombe Road, SW6\n\nApproximate Area = 193.79 sq m/ 2086 sq ft\n\n(Including Eaves)\n\nEaves =5.02 sqm/ 54 sq ft\n\nKey\n\nCH - Ceiling Height\n\n=\n\nA\n\n3 Sea WP\n\nfe\n\nI\n\nI\n\nBeiioon 4\n\nBedroom 5\n\nBedroom 2\n\n3.32x3.31\n\n3.03x242\n\n3.52x3.27\n\nLid,\n\n1011 x 1010\n\n[Et\n\n117x109\n\n911x711\n\n|\n\nL\n\nI~\n\n0“\n\nBedroom 1\n\n5.06 x 3.63\n\n167 x 1111\n\nBedroom 3\n\n4.88x3.37\n\n|\n\n16'0 x 111\n\n|\n\nlle\n\n—\n\n|\n\nber\n\nIS\n\nCo\n\nSecond Floor\n\nFirst Floor\n\nTT TT\n\n|E—\n\nCellar\n\nWan WP\n\n354x230\n\nLoos\n\nto et\n\nSy pe\n\nReception\n\nIl\n\n\"7x77\n\nRoom\n\nReception\n\nKitchen/\n\n3.50x3.28\n\nll\n\n3.92x 3.65\n\nGarden\n\nIN\n\nDining\n\n11'6 x 10'9\n\n1210 x 12'0\n\nll\n\ni]\n\n.60 x 5.11\n\nRoom\n\nll\n\n18'4 x 16'9\n\n7.80 x 4.84\n\nZ\n\n257x151\n\nULE\n\nUtity\n\nam\n\n&\n\n3.60 x 2.84\n\n1110 x 94\n\n308\n\nfg\n\nLO\n\n—\n\nBasement\n\nGround Floor\n\nAlthough every attempt has been made to ensure accuracy, all measurements are approximate.\n\nThis floorplan is for illustrative purposes only and not to scale.\n\nMeasured in accordance with RICS standards.\n"
+   ]
+  },
+  {
+   "id": "94378929",
+   "bedrooms": 2,
+   "truthSqft": 807,
+   "ocrTexts": [
+    "Conservatory\n\n3.40m x 2.90m\n\n(11'2\"x 9'6\")\n\n——\n\n—\n\naN\n\nStorage\n\n2.78m x 1.24m\n\nBedroom 2\n\n92° x41\")\n\nReception Room\n\n4.00m x 3.10m\n\n5.30m x 3.40m\n\n(13' 1\" x10\"27)\n\n{17 5x 112%)\n\nBedroom 1\n\n5.00m x 2.60m\n\n(16'5\" x 8'6\")\n\nB\n\nKitchen\n\n[0]\n\nLanding\n\nHall\n\n3.50m x 2.10m\n\nOO\n\n(11'6\"x 6' 117)\n\n[[]\n\nR\n\n.\n\nJ)\n\n[||\n\n9\n\nFa\n\n=\n\nPorch\n\nGround Floor\n\nFirst Floor\n\nTotal floor area 75.0 m? (807 sq.ft.) approx\n\nThis floor plan is for illustrative purposes only. It is not drawn to scale. Any measurements, floor areas (including any total floor area), openings and\n\norientation are approximate. No details are guaranteed, they cannot be relied upon for any purpose and they do not form part of any agreement. No\n\nliability is taken for any error, omission or misstatement. A party must rely upon its own inspection(s). Powered by www.propertybox.io\n\nBairstow eves\n"
+   ]
+  },
+  {
+   "id": "94379004",
+   "bedrooms": 2,
+   "truthSqft": 1010,
+   "ocrTexts": [
+    "Xx\n\nBALCONY\n\n[— 1\n\n-—\n\nDN\n\nMAIN BEDROOM )\n\n17'7 x 11'8\n\n5.36m x 3.56m\n\nr=\n\n1 \\ A\n\nyan\n\nI\n\nJ\n\nEE —\n\nNaVaVaVaVaVaNaVaVaNaVaVaVaN.\n\nIX\n\nSECOND FLOOR\n\nXN\n\n336 SQFT/31.28QM\n\nGARDEN\n\n-\n\nEXTEND TO\n\n230 (7.01m)\n\nAN\n\n7\\\n\navovv.\n\n~~\n\nve\n\nKITCHEN /\n\nBEDROOM 2\n\nRECEPTION ROOM\n\n151x112\n\n28'8 x 15'1\n\n} 4.60m x 3.40m\n\n~8.74m x 4.60m\n\n%\n\nYe\n\nJO]\n\nDN\n\nUP\n\nuP\n\nPARKING\n\nAN\n\nUTILITY |\n\nIN\n\nGROUND FLOOR\n\nFIRST FLOOR\n\n269 SQFT /25.0SQM\n\n405SQFT/37.6 SQM\n\nAPPROXIMATE GROSS INTERNAL AREA\n\n1010 SQFT /93.8SQM\n\nThis plan has been drawn for illustrative and identification purposes only.\n"
+   ]
+  },
+  {
+   "id": "94379202",
+   "bedrooms": 1,
+   "truthSqft": 503,
+   "ocrTexts": [
+    "_—\n\n—\n\noO\n\n(06)\n\nIa\n\n=) 280mx1.00m\n\nBathroom\n\n1\n\nKitchen\n\n|\n\n—\n\n@2\"x8'6\")\n\n4.54m x 1.69m\n\n14\" 11\" x57\")\n\nJ\n\nLO\n\nBedroom\n\n|\n\n3.99m x 3.55m\n\nHall\n\n(13'1\"x 11\" 8\")\n\n4\n\n|\n\nBalcony\n\nLounge\n\n4.35m x 2.99m\n\n(14'3\"x 9' 10\")\n\nTotal floor area 46.7 m? (503 sq.ft.) approx\n\n@e ©\n\nThis floor plan is for illustrative purposes only. It is not drawn to scale. Any measurements, floor\n\nareas (including any total floor area), openings and orientation are approximate. No details are\n\nbarnard\n\nguaranteed, they cannot be relied upon for any purpose and they do not form part of any\n\nMarcus\n\nagreement. No liability is taken for any error, omission or misstatement. A party must rely upon\n\nits own inspection(s). Powered by www.propertybox.io\n"
+   ]
+  },
+  {
+   "id": "94379211",
+   "bedrooms": 3,
+   "truthSqft": 926,
+   "ocrTexts": [
+    "a\n\nGarden\n\n15.00m x 7.50m\n\n(493 x24 T)\n\n4.90m x 2.45m\n\nGarage\n\n(16'1\"x 807)\n\nTl\n\n———\n\n>)\n\nJ\n\nill\n\nI\n\nBedroom 2\n\n(11 1\" x 10° 4)\n\n3.63mx 3.15m\n\nN\n\n\\\n\nT.\n\nLanding\n\nReception Room\n\n7.95m x 3.30m\n\nHall\n\n(26'1\" x 10°10\")\n\nBedroom 3\n\nBedroom 1\n\n250m x 1.80m\n\n420m x 3.15m\n\n®2x511)\n\n(13 9\"x 10°47)\n\nPorch\n\n\\\n\nGround Floor\n\nFirst\n\nFloor\n\nTotal floor area 86.0 m? (926 sq.ft.) approx\n\n«we\n\nThis floor plan is for illustrative purposes only. It is not drawn to scale. Any measurements, floor areas (including any total floor area), openings and\n\norientation are approximate. No details are guaranteed, they cannot be relied upon for any purpose and they do not form part of any agreement. No\n\nbarnard\n\nliability is taken for any error, omission or misstatement. A party must rely upon its own inspection(s). Powered by www.propertybox.io\n\nmarcus\n"
+   ]
+  },
+  {
+   "id": "94379232",
+   "bedrooms": 3,
+   "truthSqft": 1916,
+   "ocrTexts": [
+    "Draycott Place, SW3\n\nApproximate Gross Internal Area 1916 sq ft- 178 sqm\n\n(Including Vaults)\n\nKey :\n\nVaults 48 sq ft-4 sqm\n\nCH - Ceiling Height\n\n“00%\n\nSOS\n\n30%\n\nL <0\n\nXRT\n\n| | [|\n\nGarden\n\nKitchen\n\n-\n\n21'4 x 1410\n\n<4\n\n4.79 x 2.18m\n\n159 {7:2\n\n6.50 x 4.51m\n\nReception Room\n\n<4\n\n5\n\n6.95 x 4.20m\n\n22'10 x 13'9\n\nlo\n\n550]\n\n®\n\n20%\n\n—\n\n2\n\n<Q\n\noO\n\n<Q\n\n5:\n\n3\n\n5\n\n9%\n\n5\n\n=\n\nE\n\nDining Room\n\n(er\n\nSe\n\n181 x 11'4\n\n(3.50m)\n\ni\n\n7\n\n| [Fst\n\n5.50 x 3.45m\n\nRT\n\n$=\n\nGround Floor\n\nStore\n\n3)\n\n%\n\n<0\n\n/\n\noO\n\nLG\n\nRKP\n\n9%\n\n5\n\nXK\n\np4\n\n2\n\nxX\n\nBX\n\nStore\n\nBedroom 3\n\nA\n\n102 x71\n\n|\n\nPrincipal\n\nww 3.09x2.16m\n\n|<\n\nBedroom\n\n20'9x 130 on\n\nVault\n\n6.33 x 3.96m 28m)\n\nXS\n\nos\n\nF — + -\n\n19'5 x 16'9\n\n\\ \\\\\n\n\\\n\n2%\n\n5\n\n5.91 x5.10m\n\n5\n\nKR\n\nog\n\n.\n\n(a)\n\n-* Garden\n\nI]\n\n55\n\n<\n\n2\n\nSt\n\nI\n\nEo\n\n(@\n\n5\n\nKS\n\nLower Ground Floor\n\nThis plan is not to scale and must be used as layout guidance only. All measurements and areas are approximate and should\n\nnot be relied upon to provide accurate information. This plan must not be relied upon when making property valuations,\n\nUnited\n\notherwise) in relation to any loss whatsoever arising from or in connection with any use of this plan or the adequacy, accuracy\n\ndesign considerations or any other such relevant decisions. We accept no responsibility or liability (whether in contract, tort or\n\nSotheby’s\n\nor completeness of it or any information within it.\n\nKingdom\n\n|\n\nINTERNATIONAL REALTY\n"
+   ]
+  },
+  {
+   "id": "94379310",
+   "bedrooms": 3,
+   "truthSqft": 824,
+   "ocrTexts": [
+    "Bromley Road, London, SE6\n\nApproximate Area = 824 sq ft / 76.5 sqm\n\nBalcony\n\nFor identification only - Not to scale\n\n10'6 (3.20)\n\nx 4'4 (1.32)\n\nBedroom 1\n\n12'11 (3.94) max\n\nBedroom 2\n\nReception Room\n\nx 11'1 (3.38) max\n\n12'11 (3.94)\n\n14'10 (4.52)\n\n|\n\nx 6'6 (1.98)\n\nx 12'11 (3.94)\n\nHallway\n\n192 (5.84)\n\nx 8'3 (2.51) max\n\nKitchen\n\n1011 (3.33)\n\nx 9'1 (2.77)\n\nAT NV\n\nBedroom 3\n\n10'8 (3.25)\n\n——\n\nx 10'6 (3.20) max\n\nLl.\n\nBathroom\n\n8'(2.44)\n\nEE\n\nx 5'6 (1.65)\n\nfF\n\nBalcony\n\n=\n\n|\n\nJ]\n\n9'3 (2.82)\n\n[1]\n\n[|]\n\nx 32 (0.97)\n\nI\n\nI\n\nSECOND FLOOR\n\nIn:\n\nR\n"
+   ]
+  },
+  {
+   "id": "94379526",
+   "bedrooms": 2,
+   "truthSqft": 578,
+   "ocrTexts": [
+    "OF\n\n=~\n\n=\n\nPRIMARY BEDROOM\n\nKITCHEN\n\nom\n\n5.75m x 2.63m\n\n2.49m x 2.36m\n\non\n\nXX x\n\n|\n\n= E\n\n<< ™M\n\nmn\n\nBE)\n\n\\\n\n1\n\n>\n\n=a\n\n— X\n\n< E\n\nTX\n\n|\n\nBEDROOM\n\n|\n\n3.47m x 1.77m\n\nLIVING ROOM\n\n|\n\n5.49m x 3.24m\n\n|\n\nFLOOR PLAN\n\nGROSS INTERNAL AREA\n\nFLOOR PLAN\n\nHEAVEN 2M\n\nEstate Agent\n\nTOTAL #37 m2\n\n“y Matterport\n"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8" />
+<script type="module">
+  const suite = new URLSearchParams(location.search).get('name');
+  const report = (data) => parent.postMessage({ suite, ...data }, '*');
+  addEventListener('error', (e) => report({ crash: `${e.message} @ ${e.filename}:${e.lineno}` }));
+  addEventListener('unhandledrejection', (e) => report({ crash: String(e.reason?.stack || e.reason) }));
+
+  // lib/t.js captures the real fetch before any suite stubs it.
+  const t = await import('./lib/t.js');
+  await import(`./suites/${suite}.test.js`);
+  report({ results: await t.runAll() });
+</script>
