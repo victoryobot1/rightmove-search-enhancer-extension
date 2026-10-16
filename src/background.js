@@ -1,11 +1,12 @@
 import { extractPageModel } from './pageModel.js';
 import { findSize, htmlToText, sizeFromSizings } from './extract.js';
+import { estimateFromRooms, readRooms } from './estimate.js';
 import { getSettings } from './settings.js';
 import { isRightmoveUrl } from './site.js';
 
 const CACHE_PREFIX = 'size:';
 // Bump when extraction rules change so results cached by older versions are looked up again.
-const CACHE_VERSION = 2;
+const CACHE_VERSION = 3;
 const TTL_FOUND_MS = 14 * 24 * 60 * 60 * 1000;
 const TTL_NONE_MS = 24 * 60 * 60 * 1000; // agents often add floorplans after listing
 const MAX_CONCURRENT_LOOKUPS = 2;
@@ -19,7 +20,24 @@ const SOURCE_LABELS = {
   floorplan: 'Floorplan (OCR)',
   brochure: 'Brochure',
   brochureOcr: 'Brochure (OCR)',
+  roomEstimate: 'Estimated from floorplan room sizes',
 };
+
+// How much a stated total from each source can be trusted, before adjusting for the
+// wording around it (findSize's context score). Room-size estimates score themselves.
+const BASE_CONFIDENCE = {
+  listing: 97,
+  description: 82,
+  brochure: 82,
+  floorplan: 85,
+  brochureOcr: 78,
+};
+
+function confidenceFor(source, size) {
+  if (source === 'listing') return size.fromMetric ? 95 : 97;
+  const contextBonus = Math.max(-12, Math.min(8, Math.round((size.score ?? 0) * 1.5)));
+  return Math.max(40, Math.min(95, BASE_CONFIDENCE[source] + contextBonus));
+}
 
 // ---------------------------------------------------------------------------
 // Toolbar icon: coloured on Rightmove, greyed out everywhere else (the manifest default).
@@ -139,10 +157,18 @@ async function cacheStats() {
 }
 
 // ---------------------------------------------------------------------------
-// Lookup pipeline: Size section → description → floorplans → brochures
+// Lookup pipeline: Size section → description → floorplan totals → brochures
+// → (last resort) estimate from the floorplan's room dimensions.
 
 function found(size, source) {
-  return { status: 'found', ...size, source, sourceLabel: SOURCE_LABELS[source] };
+  const { score, ...rest } = size;
+  return {
+    status: 'found',
+    ...rest,
+    confidence: size.confidence ?? confidenceFor(source, size),
+    source,
+    sourceLabel: SOURCE_LABELS[source],
+  };
 }
 
 async function lookup(id) {
@@ -162,15 +188,20 @@ async function lookup(id) {
   const fromText = findSize(text);
   if (fromText) return found(fromText, 'description');
 
+  const floorplanTexts = []; // best OCR text per floorplan, kept for the room-size estimate
   if (settings.ocrFloorplans) {
     const floorplans = (pd.floorplans || []).filter((f) => f?.url && (!f.type || f.type === 'IMAGE'));
     for (const fp of floorplans.slice(0, MAX_FLOORPLANS)) {
       checked.push('floorplan');
       try {
+        const passes = [];
         for (const enhanced of [false, true]) {
-          const size = findSize(await offscreen('ocrImage', { url: fp.url, enhanced }));
+          const ocrText = await offscreen('ocrImage', { url: fp.url, enhanced });
+          const size = findSize(ocrText);
           if (size) return found(size, 'floorplan');
+          passes.push(ocrText);
         }
+        floorplanTexts.push(passes.sort((a, b) => readRooms(b).rooms.length - readRooms(a).rooms.length)[0]);
       } catch (err) {
         console.warn('Floorplan OCR failed', id, fp.url, err);
       }
@@ -180,6 +211,11 @@ async function lookup(id) {
   if (settings.scanBrochures) {
     const size = await searchBrochures(id, pd.brochures || [], settings, checked);
     if (size) return size;
+  }
+
+  if (floorplanTexts.length) {
+    const estimate = estimateFromRooms(floorplanTexts, { bedrooms: pd.bedrooms });
+    if (estimate) return found(estimate, 'roomEstimate');
   }
 
   return { status: 'none', checked: [...new Set(checked)] };

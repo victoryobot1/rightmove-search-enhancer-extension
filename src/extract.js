@@ -114,6 +114,7 @@ export function findSize(text) {
     sqm: Math.round(best.sqft / SQFT_PER_SQM),
     fromMetric: best.fromMetric,
     snippet: best.snippet,
+    score: best.score, // context score: higher means "total"/"gross internal" wording nearby
   };
 }
 
