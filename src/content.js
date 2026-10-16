@@ -145,6 +145,38 @@
     );
   }
 
+  // -------------------------------------------------------------------------
+  // Hidden properties: Rightmove swaps the whole card for a "You've hidden this property /
+  // Show" panel with no link to the listing, so findCards never sees it and it gets no
+  // badge. All that's left is cancelling a lookup that was queued before the user hid it.
+
+  const HIDDEN_PANEL_BUTTON = '[data-testid="show-hidden-property"]';
+  const cancelSent = new Set();
+
+  function hiddenPropertyIds() {
+    const ids = new Set();
+    for (const button of document.querySelectorAll(HIDDEN_PANEL_BUTTON)) {
+      const panel = button.closest(CARD_SELECTOR) || button.parentElement?.parentElement;
+      // The listing id only survives in the "why did you hide it?" questionnaire.
+      const ref =
+        panel?.querySelector('label[for^="hide-questionnaire-"]')?.getAttribute('for') ||
+        panel?.querySelector('select[data-testid^="hide-questionnaire-"]')?.dataset.testid ||
+        '';
+      const id = ref.match(/(\d+)$/)?.[1];
+      if (id) ids.add(id);
+    }
+    return ids;
+  }
+
+  function cancelHiddenLookups() {
+    for (const id of hiddenPropertyIds()) {
+      if (!requested.has(id) || results.has(id) || cancelSent.has(id)) continue;
+      // Still queued: dropped. Already running: left to finish, and the result is cached.
+      cancelSent.add(id);
+      chrome.runtime.sendMessage({ type: 'cancelSize', id }).catch(() => {});
+    }
+  }
+
   function createBadge(id, extraClass) {
     const badge = document.createElement('span');
     badge.className = extraClass ? `${BADGE_CLASS} ${extraClass}` : BADGE_CLASS;
@@ -163,6 +195,7 @@
       badge = createBadge(id);
       mount.appendChild(badge);
       visibility.observe(card);
+      onScreen.observe(card);
     }
     badge.dataset.id = id;
     updateBadge(badge, badgeContent(results.get(id), cardPrice(card)));
@@ -194,7 +227,7 @@
     const id = badge.dataset.id;
     results.delete(id);
     requested.delete(id);
-    request(id, true);
+    request(id, true, 'visible');
   }
 
   // -------------------------------------------------------------------------
@@ -210,7 +243,7 @@
   function renderPropertyPage() {
     const id = propertyPageId();
     if (!id) return;
-    if (!results.has(id)) request(id, false);
+    if (!results.has(id)) request(id, false, 'page');
 
     const sizeText = document.querySelector('[data-testid="info-reel-SIZE-text"]');
     const slot = sizeText?.parentElement; // the <dd> under "SIZE"
@@ -250,6 +283,7 @@
   function renderAll() {
     if (!settings.enabled) return;
     findCards().forEach(renderCard);
+    cancelHiddenLookups();
     renderPropertyPage();
   }
 
@@ -261,23 +295,48 @@
   // -------------------------------------------------------------------------
   // Fetching (only for cards near the viewport)
 
+  // Cards within 1200px of the viewport are looked up ahead of time ("nearby" priority);
+  // ones actually on screen jump ahead of them ("visible"), and drop back when scrolled off.
+  const onScreenIds = new Set();
+
   const visibility = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
         if (!entry.isIntersecting) continue;
         const id = propertyIdFromCard(entry.target);
-        if (id && !results.has(id)) request(id, false);
+        if (id && !results.has(id)) request(id, false, onScreenIds.has(id) ? 'visible' : 'nearby');
       }
     },
     { rootMargin: '1200px 0px' },
   );
 
-  async function request(id, force) {
+  const onScreen = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      const id = propertyIdFromCard(entry.target);
+      if (!id) continue;
+      if (entry.isIntersecting) onScreenIds.add(id);
+      else onScreenIds.delete(id);
+      if (requested.has(id) && !results.has(id)) {
+        const priority = entry.isIntersecting ? 'visible' : 'nearby';
+        chrome.runtime.sendMessage({ type: 'setPriority', id, priority }).catch(() => {});
+      }
+    }
+  });
+
+  async function request(id, force, priority = 'nearby') {
     if (requested.has(id)) return;
     requested.add(id);
+    cancelSent.delete(id);
     rerender(id);
     try {
-      const result = await chrome.runtime.sendMessage({ type: 'getSize', id, force });
+      const result = await chrome.runtime.sendMessage({ type: 'getSize', id, force, priority });
+      if (result?.status === 'cancelled') {
+        // Hidden while queued; forget it so unhiding the card requests it again.
+        requested.delete(id);
+        // Another tab's search page cancelled a lookup this property page still needs.
+        if (propertyPageId() === id) request(id, false, 'page');
+        return;
+      }
       results.set(id, result || { status: 'error', message: 'No response' });
     } catch (err) {
       // Usually "Extension context invalidated" after the extension is reloaded.

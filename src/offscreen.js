@@ -54,8 +54,10 @@ async function recognize(canvas) {
   return data.text || '';
 }
 
+const FETCH_TIMEOUT_MS = 10 * 1000; // under background.js's 15s limit per job
+
 async function fetchOk(url) {
-  const res = await fetch(url, { credentials: 'omit' });
+  const res = await fetch(url, { credentials: 'omit', signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
   return res;
 }
