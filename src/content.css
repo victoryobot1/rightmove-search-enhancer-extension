@@ -13,10 +13,39 @@
   border: 1px solid #9fd8c9;
 }
 
-.rmse-size[data-state='derived'] {
+/* Colour follows the confidence score: high ≥85, medium 65–84, low 45–64, very low <45. */
+.rmse-size[data-band='high'] {
+  background: #e3f4f0;
+  border-color: #9fd8c9;
+  color: #00315a;
+}
+
+.rmse-size[data-band='medium'] {
   background: #fff6dc;
   border-color: #f1d27a;
   color: #5a4000;
+}
+
+.rmse-size[data-band='low'] {
+  background: #ffe9d6;
+  border-color: #f5b583;
+  color: #6b3000;
+}
+
+.rmse-size[data-band='verylow'] {
+  background: #fde4e4;
+  border-color: #f0a3a3;
+  color: #7a1010;
+}
+
+.rmse-size-confidence {
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  background: rgba(255, 255, 255, 0.7);
 }
 
 .rmse-size[data-state='loading'] {

@@ -51,6 +51,7 @@
             sqm: Math.round(sqft / SQFT_PER_SQM),
             source: 'listing',
             sourceLabel: 'Size section',
+            confidence: 97,
           });
         }
       }
@@ -87,19 +88,40 @@
     return m ? Number(m[1].replace(/,/g, '')) : null;
   }
 
+  // Badge colour follows the confidence score.
+  function confidenceBand(confidence) {
+    if (confidence >= 85) return 'high';
+    if (confidence >= 65) return 'medium';
+    if (confidence >= 45) return 'low';
+    return 'verylow';
+  }
+
   function badgeContent(card, r) {
     if (!r) return { state: 'loading', text: 'Size…', title: 'Looking up floor area' };
 
     if (r.status === 'found') {
+      const confidence = r.confidence ?? 97;
+      const estimated = r.source === 'roomEstimate';
       const derived = r.source !== 'listing' || r.fromMetric;
-      let text = `${derived ? '≈ ' : ''}${formatArea(r)}`;
+      let text = `${estimated ? 'est. ' : derived ? '≈ ' : ''}${formatArea(r)}`;
       const price = settings.showPricePerSqft && salePrice(card);
       if (price) text += ` · £${fmt(price / r.sqft)}/sq ft`;
 
-      let title = `Source: ${r.sourceLabel}`;
-      if (r.fromMetric) title += ' (converted from m²)';
-      if (r.snippet) title += `\n“${r.snippet}”`;
-      return { state: derived ? 'derived' : 'found', text, title };
+      let title;
+      if (estimated) {
+        title = `Estimated floor area — ${confidence}% confidence\n\n${(r.working || []).join('\n')}`;
+      } else {
+        title = `Source: ${r.sourceLabel}${r.fromMetric ? ' (converted from m²)' : ''}\nConfidence: ${confidence}%`;
+        if (r.snippet) title += `\n“${r.snippet}”`;
+      }
+      return {
+        state: 'found',
+        band: confidenceBand(confidence),
+        text,
+        // Agent-stated sizes don't need a score on the badge; everything else shows it.
+        pill: r.source === 'listing' ? '' : `${confidence}%`,
+        title,
+      };
     }
 
     if (r.status === 'none') {
@@ -135,10 +157,19 @@
     }
     badge.dataset.id = id;
 
-    const { state, text, title } = badgeContent(card, results.get(id));
-    if (badge.dataset.state !== state || badge.textContent !== text) {
+    const { state, band = '', text, pill = '', title } = badgeContent(card, results.get(id));
+    const key = `${state}|${band}|${text}|${pill}`;
+    if (badge.dataset.key !== key) {
+      badge.dataset.key = key;
       badge.dataset.state = state;
+      badge.dataset.band = band;
       badge.textContent = text;
+      if (pill) {
+        const pillEl = document.createElement('span');
+        pillEl.className = `${BADGE_CLASS}-confidence`;
+        pillEl.textContent = pill;
+        badge.appendChild(pillEl);
+      }
     }
     if (badge.title !== title) badge.title = title;
   }
