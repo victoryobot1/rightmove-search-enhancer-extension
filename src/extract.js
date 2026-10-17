@@ -10,7 +10,8 @@ export const isPlausibleSqft = (sqft) => sqft >= MIN_SQFT && sqft <= MAX_SQFT;
 
 const NUM = String.raw`(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,3}))?`;
 // OCR often reads "²" as "2" or "?", and some floorplans write "217ft square".
-const FT_UNIT = String.raw`sq(?:uare)?[\s.]*f(?:ee|oo)?t\b\.?|ft[2²?](?!\d)|f(?:ee)?t\.?\s*sq(?:uare|\.)?\b`;
+// Agents also write "579 Sq'" (the foot mark standing in for "ft").
+const FT_UNIT = String.raw`sq(?:uare)?[\s.]*f(?:ee|oo)?t\b\.?|ft[2²?](?!\d)|f(?:ee)?t\.?\s*sq(?:uare|\.)?\b|sq\.?\s*['’′](?!\s*\d)`;
 const M_UNIT = String.raw`sq(?:uare)?[\s.]*m(?:etres?|eters?|trs?)?\b\.?|m[2²?](?!\d)|m(?:etres?)?\s*sq(?:uare|\.)?\b`;
 const SIZE_RE = new RegExp(String.raw`(?<![\d.,])${NUM}\s*(?:(${FT_UNIT})|(${M_UNIT}))`, 'gi');
 
@@ -120,6 +121,26 @@ export function findSize(text) {
     snippet: best.snippet,
     score: best.score, // context score: higher means "total"/"gross internal" wording nearby
   };
+}
+
+/**
+ * Searches a listing's description and each of its key features for the total area.
+ * Each key feature is searched on its own: a bullet like "650 sq ft" must not pick up
+ * context from the bullet before it (e.g. "Private garden").
+ * @returns {{size: object, source: 'description' | 'keyFeatures'} | null}
+ */
+export function sizeFromListingText(descriptionHtml, keyFeatures = []) {
+  const candidates = [];
+  const fromDescription = findSize(htmlToText(descriptionHtml));
+  if (fromDescription) candidates.push({ size: fromDescription, source: 'description' });
+  for (const feature of keyFeatures) {
+    const size = findSize(htmlToText(feature));
+    if (size) candidates.push({ size, source: 'keyFeatures' });
+  }
+  // Best context wins; on a tie, prefer the key feature, a deliberate standalone statement.
+  const isFeature = (c) => (c.source === 'keyFeatures' ? 1 : 0);
+  candidates.sort((a, b) => b.size.score - a.size.score || isFeature(b) - isFeature(a));
+  return candidates[0] ?? null;
 }
 
 /** Reads Rightmove's structured `sizings` array (the "Size" section on a listing). */

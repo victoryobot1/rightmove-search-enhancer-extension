@@ -1,12 +1,12 @@
 import { extractPageModel } from './pageModel.js';
-import { findSize, htmlToText, sizeFromSizings } from './extract.js';
+import { findSize, sizeFromListingText, sizeFromSizings } from './extract.js';
 import { estimateFromRooms, readRooms } from './estimate.js';
 import { getSettings } from './settings.js';
 import { isRightmoveUrl } from './site.js';
 
 const CACHE_PREFIX = 'size:';
 // Bump when extraction rules change so results cached by older versions are looked up again.
-const CACHE_VERSION = 4;
+const CACHE_VERSION = 5;
 const TTL_FOUND_MS = 14 * 24 * 60 * 60 * 1000;
 const TTL_NONE_MS = 24 * 60 * 60 * 1000; // agents often add floorplans after listing
 // Fast lane: fetch the property page and check the Size field + description (network only).
@@ -30,6 +30,7 @@ const TIMEOUTS = {
 const SOURCE_LABELS = {
   listing: 'Size section',
   description: 'Description',
+  keyFeatures: 'Key features',
   floorplan: 'Floorplan (OCR)',
   brochure: 'Brochure',
   brochureOcr: 'Brochure (OCR)',
@@ -41,6 +42,7 @@ const SOURCE_LABELS = {
 const BASE_CONFIDENCE = {
   listing: 97,
   description: 82,
+  keyFeatures: 85,
   brochure: 82,
   floorplan: 85,
   brochureOcr: 78,
@@ -390,10 +392,9 @@ async function quickLookup(id) {
   const fromListing = sizeFromSizings(pd.sizings);
   if (fromListing) return found(fromListing, 'listing');
 
-  const checked = ['size section', 'description'];
-  const text = [htmlToText(pd.text?.description), ...(pd.keyFeatures || [])].join('\n');
-  const fromText = findSize(text);
-  if (fromText) return found(fromText, 'description');
+  const checked = ['size section', 'description', 'key features'];
+  const fromText = sizeFromListingText(pd.text?.description, pd.keyFeatures || []);
+  if (fromText) return found(fromText.size, fromText.source);
 
   const floorplans = (pd.floorplans || []).filter((f) => f?.url && (!f.type || f.type === 'IMAGE'));
   const hasOcrWork =
