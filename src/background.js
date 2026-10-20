@@ -6,7 +6,7 @@ import { isRightmoveUrl, safeExternalUrl } from './site.js';
 
 const CACHE_PREFIX = 'size:';
 // Bump when extraction rules change so results cached by older versions are looked up again.
-const CACHE_VERSION = 5;
+const CACHE_VERSION = 6;
 const TTL_FOUND_MS = 14 * 24 * 60 * 60 * 1000;
 const TTL_NONE_MS = 24 * 60 * 60 * 1000; // agents often add floorplans after listing
 // Fast lane: fetch the property page and check the Size field + description (network only).

@@ -8,11 +8,13 @@ const MAX_SQFT = 50000;
 // Agents sometimes put placeholders like "1 sq ft" in the Size field; treat those as missing.
 export const isPlausibleSqft = (sqft) => sqft >= MIN_SQFT && sqft <= MAX_SQFT;
 
-const NUM = String.raw`(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,3}))?`;
-// OCR often reads "²" as "2" or "?", and some floorplans write "217ft square".
-// Agents also write "579 Sq'" (the foot mark standing in for "ft").
-const FT_UNIT = String.raw`sq(?:uare)?[\s.]*f(?:ee|oo)?t\b\.?|ft[2²?](?!\d)|f(?:ee)?t\.?\s*sq(?:uare|\.)?\b|sq\.?\s*['’′](?!\s*\d)`;
-const M_UNIT = String.raw`sq(?:uare)?[\s.]*m(?:etres?|eters?|trs?)?\b\.?|m[2²?](?!\d)|m(?:etres?)?\s*sq(?:uare|\.)?\b`;
+// Any number of decimals: some floorplan software prints "825.3766 sq ft".
+const NUM = String.raw`(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d+))?`;
+// OCR often reads "²" as "2", "?" or "*", and some floorplans write "217ft square".
+// Agents also write "579 Sq'" (the foot mark standing in for "ft"); OCR reads a
+// superscript "ft" after "sq" the same way, or as '"'.
+const FT_UNIT = String.raw`sq(?:uare)?[\s.]*f(?:ee|oo)?t\b\.?|ft[2²?](?!\d)|f(?:ee)?t\.?\s*sq(?:uare|\.)?\b|sq\.?\s*['’′"](?!\s*\d)`;
+const M_UNIT = String.raw`sq(?:uare)?[\s.]*m(?:etres?|eters?|trs?)?\b\.?|m[2²?*](?!\d)|m(?:etres?)?\s*sq(?:uare|\.)?\b`;
 const SIZE_RE = new RegExp(String.raw`(?<![\d.,])${NUM}\s*(?:(${FT_UNIT})|(${M_UNIT}))`, 'gi');
 
 const TOTAL_RE = /\b(total|gross|internal|g\.?i\.?a|overall|in all|combined|entire|whole)\b/;

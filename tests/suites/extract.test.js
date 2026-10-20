@@ -14,6 +14,10 @@ const CASES = [
   ['Approx. Gross Internal Area 537.54ft? /49.94m?', 538],
   ['Approximate total area 70.7 m? 761 ft?', 761],
   ['Total area 85.3m² approx', 918],
+  ['Approximate Gross Internal Area\n76.68 m² / 825.3766 sq ft', 825],
+  ['Approximate Gross Internal Area\n\n76.68 m*/ 825.3766 sq\n\nBedroom', 825],
+  ['Approximate Gross Internal Area\n\n76.68 m*/ 825.3766 sq"\n\nBedroom', 825],
+  ['Approximate Gross Internal Area\n\n825.3766 sq"\n\nBedroom', 825],
   // Description wording
   ['the house extends to 1,100 square feet with a 500 square feet garden', 1100],
   ['a 2,000 sq ft garden and 900 sq ft of living space', 900],
