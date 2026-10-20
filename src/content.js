@@ -6,7 +6,7 @@
   const MIN_SQFT = 100;
   const MAX_SQFT = 50000;
   const BADGE_CLASS = 'rmse-size';
-  const DEFAULTS = { enabled: true, unit: 'sqft', showPricePerSqft: true };
+  const DEFAULTS = { enabled: true, unit: 'sqft', showPricePerSqft: true, collapseHidden: true };
 
   let settings = { ...DEFAULTS };
   const results = new Map(); // property id -> result from background (or search-page JSON)
@@ -26,12 +26,17 @@
 
   const CARD_SELECTOR = '[data-testid^="propertyCard-"]';
 
+  // Cards are nested (propertyCard-N > propertyCard-vrt-N); use the outermost.
+  function outermostCard(el) {
+    let card = el.closest(CARD_SELECTOR);
+    while (card?.parentElement?.closest(CARD_SELECTOR)) card = card.parentElement.closest(CARD_SELECTOR);
+    return card;
+  }
+
   function findCards() {
     const cards = new Set();
     for (const link of document.querySelectorAll('a[href*="/properties/"]')) {
-      // Cards are nested (propertyCard-N > propertyCard-vrt-N); use the outermost.
-      let card = link.closest(CARD_SELECTOR);
-      while (card?.parentElement?.closest(CARD_SELECTOR)) card = card.parentElement.closest(CARD_SELECTOR);
+      const card = outermostCard(link);
       if (card) cards.add(card);
     }
     return [...cards];
@@ -148,15 +153,31 @@
   // -------------------------------------------------------------------------
   // Hidden properties: Rightmove swaps the whole card for a "You've hidden this property /
   // Show" panel with no link to the listing, so findCards never sees it and it gets no
-  // badge. All that's left is cancelling a lookup that was queued before the user hid it.
+  // badge. We mark those panels so content.css can collapse them (the collapseHidden
+  // setting), and cancel any lookup that was queued before the user hid the property.
 
   const HIDDEN_PANEL_BUTTON = '[data-testid="show-hidden-property"]';
+  const HIDDEN_ATTR = 'data-rmse-hidden';
+  const COLLAPSE_CLASS = 'rmse-collapse-hidden';
   const cancelSent = new Set();
+
+  function hiddenPanels() {
+    return [...document.querySelectorAll(HIDDEN_PANEL_BUTTON)].map(
+      (button) => outermostCard(button) || button.parentElement?.parentElement,
+    );
+  }
+
+  function markHiddenPanels() {
+    const panels = new Set(hiddenPanels().filter(Boolean));
+    // React may reuse the element when a property is unhidden; unmark it then.
+    for (const el of document.querySelectorAll(`[${HIDDEN_ATTR}]`)) if (!panels.has(el)) el.removeAttribute(HIDDEN_ATTR);
+    for (const panel of panels) panel.setAttribute(HIDDEN_ATTR, '');
+    document.documentElement.classList.toggle(COLLAPSE_CLASS, Boolean(settings.collapseHidden));
+  }
 
   function hiddenPropertyIds() {
     const ids = new Set();
-    for (const button of document.querySelectorAll(HIDDEN_PANEL_BUTTON)) {
-      const panel = button.closest(CARD_SELECTOR) || button.parentElement?.parentElement;
+    for (const panel of hiddenPanels()) {
       // The listing id only survives in the "why did you hide it?" questionnaire.
       const ref =
         panel?.querySelector('label[for^="hide-questionnaire-"]')?.getAttribute('for') ||
@@ -281,6 +302,7 @@
   }
 
   function renderAll() {
+    markHiddenPanels();
     if (!settings.enabled) return;
     findCards().forEach(renderCard);
     cancelHiddenLookups();
@@ -369,7 +391,10 @@
       if (key in DEFAULTS) settings[key] = newValue ?? DEFAULTS[key];
     }
     if (settings.enabled) renderAll();
-    else removeAll();
+    else {
+      removeAll();
+      markHiddenPanels();
+    }
   });
 
   chrome.storage.sync.get(DEFAULTS).then((stored) => {

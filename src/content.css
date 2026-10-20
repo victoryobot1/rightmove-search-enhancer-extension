@@ -81,3 +81,8 @@
   margin-top: 2px;
   font-size: 14px;
 }
+
+/* Properties the user hid on Rightmove: collapse the "You've hidden this property" panel. */
+.rmse-collapse-hidden [data-rmse-hidden] {
+  display: none !important;
+}
