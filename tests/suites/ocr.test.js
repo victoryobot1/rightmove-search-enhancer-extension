@@ -9,7 +9,7 @@ const MIN_FOUND = 24; // of 27 sample floorplans at the time of writing
 // offscreen.js expects the extension APIs and a global Tesseract.
 let listener;
 globalThis.chrome = {
-  runtime: { getURL: (p) => `${location.origin}/${p}`, onMessage: { addListener(fn) { listener = fn; } } },
+  runtime: { id: 'test-extension', getURL: (p) => `${location.origin}/${p}`, onMessage: { addListener(fn) { listener = fn; } } },
 };
 await new Promise((resolve, reject) => {
   const s = Object.assign(document.createElement('script'), { src: '/vendor/tesseract/tesseract.min.js', onload: resolve, onerror: reject });
@@ -17,7 +17,8 @@ await new Promise((resolve, reject) => {
 });
 await import('/src/offscreen.js');
 
-const call = (op, args) => new Promise((resolve) => listener({ target: 'offscreen', op, ...args }, {}, resolve));
+// Sent as the extension itself, like background.js; offscreen.js ignores messages from tabs.
+const call = (op, args) => new Promise((resolve) => listener({ target: 'offscreen', op, ...args }, { id: 'test-extension' }, resolve));
 const floorplans = await fixture('floorplans.json');
 
 // Same two passes as background.js: normal, then contrast-boosted if nothing was found.

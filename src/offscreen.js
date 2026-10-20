@@ -1,14 +1,21 @@
 /* global Tesseract */
 import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
+import { safeExternalUrl } from './site.js';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('vendor/pdfjs/pdf.worker.min.mjs');
 
 const MAX_PDF_TEXT_PAGES = 15;
 const OCR_TARGET_WIDTH = 2000; // floorplan text is small; upscaling helps Tesseract a lot
 const MAX_CACHED_PDFS = 2;
+// Download caps, so a listing linking to a huge file can't exhaust memory. The largest
+// real brochure seen so far was about 10 MB.
+const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
+const MAX_DOCUMENT_BYTES = 30 * 1024 * 1024;
 
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg?.target !== 'offscreen') return false;
+  // Only the background worker drives OCR; messages from a tab's content script are ignored.
+  if (sender.tab || sender.id !== chrome.runtime.id) return false;
   const handler = HANDLERS[msg.op];
   if (!handler) return false;
 
@@ -62,10 +69,46 @@ async function fetchOk(url) {
   return res;
 }
 
+// Reads a response body, giving up as soon as it passes `maxBytes` (whether or not the
+// server announced its size).
+async function readCapped(res, maxBytes) {
+  const tooBig = () => new Error(`File too large (over ${Math.round(maxBytes / 1024 / 1024)} MB): ${res.url}`);
+  if (Number(res.headers.get('content-length')) > maxBytes) throw tooBig();
+
+  if (!res.body) return new Uint8Array(0);
+  const reader = res.body.getReader();
+  const chunks = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      reader.cancel().catch(() => {});
+      throw tooBig();
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
+}
+
+// Brochure links are checked before they're sent here, but a redirect could still land
+// somewhere local; refuse to read it if so.
+function checkFinalUrl(res) {
+  if (res.url && !safeExternalUrl(res.url)) throw new Error(`Brochure redirected to a disallowed address: ${res.url}`);
+}
+
 // `enhanced` is a second pass for faint grey text; it's not the default because the
 // contrast boost occasionally turns thousands separators into digits.
 async function ocrImage(url, enhanced) {
-  const bitmap = await createImageBitmap(await (await fetchOk(url)).blob());
+  const res = await fetchOk(url);
+  const bitmap = await createImageBitmap(new Blob([await readCapped(res, MAX_IMAGE_BYTES)]));
   const targetWidth = enhanced ? OCR_TARGET_WIDTH * 1.3 : OCR_TARGET_WIDTH;
   const scale = Math.min(3, Math.max(1, targetWidth / bitmap.width));
   const canvas = document.createElement('canvas');
@@ -101,7 +144,12 @@ function rememberPdf(url, promise) {
 function openPdf(url, bytes) {
   if (pdfCache.has(url)) return pdfCache.get(url);
   const load = async () => {
-    const data = bytes ?? new Uint8Array(await (await fetchOk(url)).arrayBuffer());
+    let data = bytes;
+    if (!data) {
+      const res = await fetchOk(url);
+      checkFinalUrl(res);
+      data = await readCapped(res, MAX_DOCUMENT_BYTES);
+    }
     return pdfjsLib.getDocument({ data, isEvalSupported: false }).promise;
   };
   return rememberPdf(url, load());
@@ -114,8 +162,9 @@ function looksLikePdf(bytes) {
 
 async function readDocument(url) {
   const res = await fetchOk(url);
+  checkFinalUrl(res);
   const contentType = res.headers.get('content-type') || '';
-  const bytes = new Uint8Array(await res.arrayBuffer());
+  const bytes = await readCapped(res, MAX_DOCUMENT_BYTES);
 
   if (contentType.includes('pdf') || looksLikePdf(bytes)) {
     const doc = await openPdf(url, bytes);

@@ -4,15 +4,15 @@
   "version": "1.0.0",
   "description": "Shows each property's total square footage on Rightmove search results, read from the listing, description, floorplan or brochure.",
   "permissions": ["storage", "offscreen"],
-  "host_permissions": ["https://*.rightmove.co.uk/*", "http://*.rightmove.co.uk/*"],
-  "optional_host_permissions": ["https://*/*", "http://*/*"],
+  "host_permissions": ["https://*.rightmove.co.uk/*"],
+  "optional_host_permissions": ["https://*/*"],
   "background": {
     "service_worker": "src/background.js",
     "type": "module"
   },
   "content_scripts": [
     {
-      "matches": ["https://*.rightmove.co.uk/*", "http://*.rightmove.co.uk/*"],
+      "matches": ["https://*.rightmove.co.uk/*"],
       "js": ["src/content.js"],
       "css": ["src/content.css"],
       "run_at": "document_idle"

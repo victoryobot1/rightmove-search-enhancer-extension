@@ -1,7 +1,7 @@
 import { DEFAULT_SETTINGS, getSettings } from './settings.js';
 import { RIGHTMOVE_URL, isRightmoveUrl } from './site.js';
 
-const EXTERNAL_ORIGINS = { origins: ['https://*/*', 'http://*/*'] };
+const EXTERNAL_ORIGINS = { origins: ['https://*/*'] }; // brochure links are upgraded to https
 
 async function init() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });

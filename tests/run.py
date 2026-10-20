@@ -27,7 +27,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TESTS = os.path.join(ROOT, "tests")
 CACHE = os.path.join(TESTS, ".cache", "floorplans")
 
-FAST_SUITES = ["extract", "listings", "pageModel", "estimate", "site", "queue"]
+FAST_SUITES = ["extract", "listings", "pageModel", "estimate", "site", "offscreen", "queue"]
 CHROME_CANDIDATES = [
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     "/Applications/Chromium.app/Contents/MacOS/Chromium",

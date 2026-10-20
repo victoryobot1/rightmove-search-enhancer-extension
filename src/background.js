@@ -2,7 +2,7 @@ import { extractPageModel } from './pageModel.js';
 import { findSize, sizeFromListingText, sizeFromSizings } from './extract.js';
 import { estimateFromRooms, readRooms } from './estimate.js';
 import { getSettings } from './settings.js';
-import { isRightmoveUrl } from './site.js';
+import { isRightmoveUrl, safeExternalUrl } from './site.js';
 
 const CACHE_PREFIX = 'size:';
 // Bump when extraction rules change so results cached by older versions are looked up again.
@@ -470,10 +470,9 @@ async function canFetchBrochure(url, settings) {
 async function searchBrochures(id, brochures, settings, checked, budget) {
   const allowed = [];
   for (const b of brochures) {
-    let url;
-    try {
-      url = new URL(b.url);
-    } catch {
+    const url = safeExternalUrl(b.url);
+    if (!url) {
+      console.warn('Skipping brochure link that is not a public https URL', id, b.url);
       continue;
     }
     if (await canFetchBrochure(url, settings)) allowed.push(url);
