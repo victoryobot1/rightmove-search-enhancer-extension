@@ -1,4 +1,4 @@
-# Rightmove Square Footage
+# Rightmove Search Enhancer
 
 A Chrome extension (Manifest V3, plain JavaScript, no build step) that shows each property's total floor area — and £ per sq ft — directly on Rightmove search results.
 
