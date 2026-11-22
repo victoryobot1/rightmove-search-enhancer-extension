@@ -92,6 +92,20 @@ chrome.runtime.onInstalled.addListener(updateActionForAllTabs);
 chrome.runtime.onStartup.addListener(updateActionForAllTabs);
 
 // ---------------------------------------------------------------------------
+// The "agents' websites" brochure setting follows the optional permission, whichever way
+// it changes: the popup can close while Chrome's permission prompt is open (so its own
+// save never runs), and the permission can be removed in chrome://extensions.
+
+const EXTERNAL_ORIGINS = 'https://*/*';
+
+chrome.permissions.onAdded.addListener(({ origins = [] }) => {
+  if (origins.includes(EXTERNAL_ORIGINS)) chrome.storage.sync.set({ externalBrochures: true });
+});
+chrome.permissions.onRemoved.addListener(({ origins = [] }) => {
+  if (origins.includes(EXTERNAL_ORIGINS)) chrome.storage.sync.set({ externalBrochures: false });
+});
+
+// ---------------------------------------------------------------------------
 // Messaging
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
@@ -128,19 +142,36 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 // property page being viewed goes first, then cards on screen, then cards further down.
 //
 // Queue logging is shown in the service worker console: chrome://extensions → this
-// extension → "Inspect views: service worker". There, `rmse.queue()` prints a snapshot
-// and `rmse.logging = false` silences it.
+// extension → "Inspect views: service worker". There, `rmse.queue()` prints a snapshot,
+// `rmse.lookups()` lists each listing's state, and `rmse.logging = false` silences it.
 
 const PRIORITY = { page: 0, visible: 1, nearby: 2 };
 const PRIORITY_NAMES = Object.keys(PRIORITY);
-const priorities = new Map(); // id -> PRIORITY value, only while a lookup is in flight
-// A priority change can arrive while getSize is still checking the cache, before the
-// lookup is registered; hold it here so it isn't lost.
-const pendingPriority = new Map();
-const priorityOf = (id) => priorities.get(id) ?? PRIORITY.nearby;
 
-const inFlight = new Map();
-const skipOcr = new Set(); // cancelled while in the fast lane: don't continue to OCR
+// One record per listing while it's being looked up ("M1" in docs/state-machines.md). It's
+// created synchronously when getSize is first called, so priority changes and repeat
+// requests that arrive during the cache check find it, and deleted once the lookup settles.
+//   checkingCache → fastQueued → fast → ocrQueued → ocr     (queued states are skipped
+//                                                             when a slot is free)
+// `cancelRequested` is set when a cancel arrives while the fast lane is running: the
+// lookup then stops before OCR.
+const NEXT_STATES = {
+  checkingCache: ['fastQueued', 'fast'],
+  fastQueued: ['fast'],
+  fast: ['ocrQueued', 'ocr'],
+  ocrQueued: ['ocr'],
+  ocr: [],
+};
+const lookups = new Map(); // id -> { state, priority, force, cancelRequested, promise }
+const priorityOf = (id) => lookups.get(id)?.priority ?? PRIORITY.nearby;
+
+function moveTo(id, state) {
+  const entry = lookups.get(id);
+  if (!entry || entry.state === state) return;
+  // Never throws: an unexpected transition is a bug worth seeing, not worth a failed lookup.
+  if (!NEXT_STATES[entry.state]?.includes(state)) console.warn(`[lookup] ${id}: unexpected ${entry.state} → ${state}`);
+  entry.state = state;
+}
 
 const secs = (since) => `${((performance.now() - since) / 1000).toFixed(1)}s`;
 const cancelled = () => ({ status: 'cancelled' });
@@ -155,10 +186,12 @@ function summarise(result) {
 const byPriority = (a, b) => priorityOf(a.id) - priorityOf(b.id) || a.since - b.since;
 
 class Lane {
-  constructor(name, slots, colour) {
+  constructor(name, slots, colour, [queuedState, runningState]) {
     this.name = name;
     this.slots = slots;
     this.colour = colour;
+    this.queuedState = queuedState;
+    this.runningState = runningState;
     this.active = 0;
     this.waiting = []; // { id, since, resolve(go: boolean) }
     this.running = new Map(); // id -> { since, stage }
@@ -169,6 +202,7 @@ class Lane {
     if (this.active < this.slots) {
       this.active++;
     } else {
+      moveTo(id, this.queuedState);
       // A finishing lookup hands its slot straight to us (go = true), or we're cancelled.
       const go = await new Promise((resolve) => {
         this.waiting.push({ id, since: queuedAt, resolve });
@@ -176,6 +210,7 @@ class Lane {
       });
       if (!go) return cancelled();
     }
+    moveTo(id, this.runningState);
     this.running.set(id, { since: performance.now(), stage: 'starting' });
     this.log('start', id, `waited ${secs(queuedAt)}, priority ${PRIORITY_NAMES[priorityOf(id)]}`);
     try {
@@ -252,12 +287,20 @@ class Lane {
   }
 }
 
-const fastLane = new Lane('fast', FAST_LANE_SLOTS, '#00a88f');
-const ocrLane = new Lane('ocr', OCR_LANE_SLOTS, '#d97706');
+const fastLane = new Lane('fast', FAST_LANE_SLOTS, '#00a88f', ['fastQueued', 'fast']);
+const ocrLane = new Lane('ocr', OCR_LANE_SLOTS, '#d97706', ['ocrQueued', 'ocr']);
 
 globalThis.rmse = {
   logging: true,
   queue: () => ({ fast: fastLane.snapshot(), ocr: ocrLane.snapshot() }),
+  lookups: () =>
+    Object.fromEntries(
+      [...lookups].map(([id, e]) => {
+        const stage = (fastLane.running.get(id) ?? ocrLane.running.get(id))?.stage;
+        const parts = [e.state, PRIORITY_NAMES[e.priority], e.cancelRequested && 'cancel requested', stage];
+        return [id, parts.filter(Boolean).join(', ')];
+      }),
+    ),
 };
 
 function logEvent(event, id, detail) {
@@ -269,16 +312,13 @@ function setStage(id, stage) {
   ocrLane.setStage(id, stage);
 }
 
+// A change for a listing that isn't being looked up (it just settled) is dropped.
 function setPriority(id, name) {
-  if (!(name in PRIORITY)) return;
-  if (!inFlight.has(id)) {
-    pendingPriority.set(id, PRIORITY[name]);
-    return;
-  }
-  const current = priorityOf(id);
+  const entry = lookups.get(id);
+  if (!entry || !(name in PRIORITY)) return;
   // The property page someone is looking at stays first, whatever another tab's cards say.
-  if (current === PRIORITY.page || current === PRIORITY[name]) return;
-  priorities.set(id, PRIORITY[name]);
+  if (entry.priority === PRIORITY.page || entry.priority === PRIORITY[name]) return;
+  entry.priority = PRIORITY[name];
   for (const lane of [fastLane, ocrLane]) {
     if (lane.has(id)) lane.log('priority', id, `now ${name}, position ${lane.position(id)}`);
   }
@@ -290,7 +330,7 @@ function setPriority(id, name) {
 function cancelQueued(id) {
   if (fastLane.cancel(id) || ocrLane.cancel(id)) return true;
   if (fastLane.running.has(id)) {
-    skipOcr.add(id);
+    lookups.get(id).cancelRequested = true;
     logEvent('cancel', id, 'in fast lane now; will not continue to OCR');
     return true;
   }
@@ -299,50 +339,44 @@ function cancelQueued(id) {
 }
 
 async function lookup(id) {
-  try {
-    const quick = await fastLane.run(id, () => quickLookup(id));
-    if (quick.status !== 'needsOcr') return quick;
-    if (skipOcr.has(id)) return cancelled();
-    return await ocrLane.run(id, () => ocrLookup(id, quick));
-  } finally {
-    skipOcr.delete(id);
-  }
+  const quick = await fastLane.run(id, () => quickLookup(id));
+  if (quick.status !== 'needsOcr') return quick;
+  if (lookups.get(id)?.cancelRequested) return cancelled();
+  return ocrLane.run(id, () => ocrLookup(id, quick));
 }
 
-async function getSize(id, force, priority = 'nearby') {
+function getSize(id, force, priority = 'nearby') {
+  const existing = lookups.get(id);
+  if (existing) {
+    logEvent('joined', id, `already being looked up (${existing.state})`);
+    setPriority(id, priority);
+    // A retry that arrives during the cache check must not be answered from the cache.
+    if (force) existing.force = true;
+    return existing.promise;
+  }
+  const entry = { state: 'checkingCache', priority: PRIORITY[priority] ?? PRIORITY.nearby, force, cancelRequested: false };
+  lookups.set(id, entry);
+  entry.promise = cachedOrLookup(id, entry)
+    .catch((err) => ({ status: 'error', message: String(err?.message || err) }))
+    .finally(() => lookups.delete(id));
+  return entry.promise;
+}
+
+async function cachedOrLookup(id, entry) {
   const key = CACHE_PREFIX + id;
-  if (!force) {
+  if (!entry.force) {
     const { [key]: cached } = await chrome.storage.local.get(key);
     const ttl = cached?.status === 'found' ? TTL_FOUND_MS : TTL_NONE_MS;
-    if (cached?.v === CACHE_VERSION && Date.now() - cached.ts < ttl) {
-      pendingPriority.delete(id);
+    if (!entry.force && cached?.v === CACHE_VERSION && Date.now() - cached.ts < ttl) {
       logEvent('cache hit', id, summarise(cached));
       return cached;
     }
   }
-
-  if (inFlight.has(id)) {
-    logEvent('joined', id, 'already being looked up');
-    setPriority(id, priority);
-  } else {
-    // A priority change that arrived during the cache check is newer than the request's.
-    priorities.set(id, pendingPriority.get(id) ?? PRIORITY[priority] ?? PRIORITY.nearby);
-    pendingPriority.delete(id);
-    const promise = lookup(id)
-      .catch((err) => ({ status: 'error', message: String(err?.message || err) }))
-      .then(async (result) => {
-        result.ts = Date.now();
-        result.v = CACHE_VERSION;
-        if (result.status !== 'error' && result.status !== 'cancelled') await chrome.storage.local.set({ [key]: result });
-        return result;
-      })
-      .finally(() => {
-        inFlight.delete(id);
-        priorities.delete(id);
-      });
-    inFlight.set(id, promise);
-  }
-  return inFlight.get(id);
+  const result = await lookup(id).catch((err) => ({ status: 'error', message: String(err?.message || err) }));
+  result.ts = Date.now();
+  result.v = CACHE_VERSION;
+  if (result.status !== 'error' && result.status !== 'cancelled') await chrome.storage.local.set({ [key]: result });
+  return result;
 }
 
 async function clearCache() {

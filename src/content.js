@@ -13,6 +13,13 @@
   const requested = new Set();
   const cardIds = new WeakMap();
 
+  // Per listing (see "M5. Card badge" in docs/state-machines.md):
+  //   shown, not requested → requested (getSize sent) → found / none / error
+  //   none / error --click--> requested again (forced)
+  //   requested --cancelled--> not requested; asked again if this tab still shows the listing
+  // While `enabled` is off nothing is requested or rendered, and the observers are
+  // disconnected so re-enabling starts lookups afresh.
+
   // -------------------------------------------------------------------------
   // Card discovery
 
@@ -310,6 +317,10 @@
   }
 
   function removeAll() {
+    // Re-observing a card later only fires a fresh intersection if it was unobserved first.
+    visibility.disconnect();
+    onScreen.disconnect();
+    onScreenIds.clear();
     document.querySelectorAll(`.${BADGE_CLASS}`).forEach((el) => el.remove());
     document.querySelectorAll(`[${REPLACED_ATTR}]`).forEach((el) => el.removeAttribute(REPLACED_ATTR));
   }
@@ -346,7 +357,7 @@
   });
 
   async function request(id, force, priority = 'nearby') {
-    if (requested.has(id)) return;
+    if (!settings.enabled || requested.has(id)) return;
     requested.add(id);
     cancelSent.delete(id);
     rerender(id);
@@ -355,8 +366,12 @@
       if (result?.status === 'cancelled') {
         // Hidden while queued; forget it so unhiding the card requests it again.
         requested.delete(id);
-        // Another tab's search page cancelled a lookup this property page still needs.
+        // The cancel may have come from another tab that hid it; if this tab still shows
+        // the listing, ask again (hidden panels have no listing link, so findCards skips them).
         if (propertyPageId() === id) request(id, false, 'page');
+        else if (findCards().some((card) => propertyIdFromCard(card) === id)) {
+          request(id, false, onScreenIds.has(id) ? 'visible' : 'nearby');
+        }
         return;
       }
       results.set(id, result || { status: 'error', message: 'No response' });
@@ -368,6 +383,7 @@
   }
 
   function rerender(id) {
+    if (!settings.enabled) return;
     for (const card of findCards()) if (propertyIdFromCard(card) === id) renderCard(card);
     if (propertyPageId() === id) renderPropertyPage();
   }

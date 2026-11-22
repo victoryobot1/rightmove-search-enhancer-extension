@@ -18,6 +18,7 @@ The exit code is non-zero if anything fails. Set `CHROME=/path/to/chrome` to use
 | `estimate` | The room-size estimator against 19 floorplans with known totals. It must keep the median error ≤15% and the bias within ±8%. Also covers the tooltip working and OCR quirks (dropped decimals, imperial duplicates, split labels, outdoor space) |
 | `site` | Which URLs count as rightmove.co.uk (toolbar icon, popup message), and which brochure links are safe to fetch (public https only; no local network, IPs, odd ports or credentials) |
 | `offscreen` | Safety checks in the real `src/offscreen.js`: it ignores work from tabs and other extensions, enforces download size caps (with and without a stated size), and refuses brochures that redirect to the local network |
+| `content` | The real `content.js` on a fake search page: badges, the on/off switch (no lookups or badges while off, lookups restart when turned back on), re-asking after another tab cancelled a lookup, hidden properties, retry clicks |
 | `queue` | The real `background.js` lookup queue, with Chrome's APIs, Rightmove and OCR simulated: fast lane vs OCR lane, priority order, promoting on scroll, cancelling, time limits on stuck jobs, slot limits |
 | `ocr` (opt-in) | Real Tesseract OCR through `src/offscreen.js` on sample floorplans. These are downloaded on first run into `tests/.cache/`, not committed |
 

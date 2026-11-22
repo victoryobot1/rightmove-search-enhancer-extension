@@ -17,9 +17,11 @@ const events = []; // { t, kind, id }
 const fixtures = new Map(); // id -> propertyData
 const slowFetch = new Set();
 const store = {};
-const counters = { fetches: 0, maxFetches: 0, ocr: 0, maxOcr: 0, closedOffscreen: 0 };
+const counters = { fetches: 0, maxFetches: 0, ocr: 0, maxOcr: 0, closedOffscreen: 0, storageReads: 0 };
 const hangs = new Set(); // ids whose OCR job never finishes
 let messageListener;
+const permissionListeners = {};
+const synced = {}; // what background.js wrote to storage.sync
 
 globalThis.chrome = {
   tabs: { onUpdated: { addListener() {} }, query: async () => [] },
@@ -44,14 +46,18 @@ globalThis.chrome = {
   },
   storage: {
     local: {
-      get: async (k) => (k === null ? { ...store } : { [k]: store[k] }),
+      get: async (k) => { counters.storageReads++; return k === null ? { ...store } : { [k]: store[k] }; },
       set: async (o) => Object.assign(store, o),
       remove: async (keys) => keys.forEach((k) => delete store[k]),
     },
-    sync: { get: async (defaults) => defaults },
+    sync: { get: async (defaults) => defaults, set: async (o) => Object.assign(synced, o) },
   },
   action: { setIcon: async () => {}, setTitle: async () => {} },
-  permissions: { contains: async () => false },
+  permissions: {
+    contains: async () => false,
+    onAdded: { addListener(fn) { permissionListeners.added = fn; } },
+    onRemoved: { addListener(fn) { permissionListeners.removed = fn; } },
+  },
   offscreen: { createDocument: async () => {}, closeDocument: async () => { counters.closedOffscreen++; } },
 };
 
@@ -245,4 +251,50 @@ test('slot limits hold under load and both lanes drain', async () => {
   const snapshot = globalThis.rmse.queue();
   equal([counters.maxFetches <= 2, counters.maxOcr <= 1], [true, true], `[≤2 fetches (max ${counters.maxFetches}), ≤1 OCR (max ${counters.maxOcr})]`);
   equal(snapshot, { fast: { running: [], waiting: [] }, ocr: { running: [], waiting: [] } }, 'queue snapshot');
+});
+
+test('a priority change for a settled lookup is dropped, not applied to a later retry', async () => {
+  const late = needsOcr();
+  await getSize(late);
+  await send({ type: 'setPriority', id: late, priority: 'visible' }); // arrives just after it settled
+  equal(globalThis.rmse.lookups()[late], undefined, 'no record kept');
+  const { blocker, done } = await startBlocker();
+  const older = needsOcr();
+  const p = [done, getSize(older)];
+  await sleep(5);
+  p.push(getSize(late, 'nearby', true)); // retry: must queue as nearby, behind the older one
+  await Promise.all(p);
+  equal(named({ [blocker]: 'blocker', [older]: 'older', [late]: 'retry' })(ocrOrder([blocker, older, late]).slice(-3)), 'blocker → older → retry', 'order');
+  await idle();
+});
+
+test('requests arriving during the cache check join it: one storage read, one fetch', async () => {
+  const id = listed();
+  const reads = counters.storageReads;
+  const [a, b] = await Promise.all([getSize(id), getSize(id)]);
+  const fetches = events.filter((e) => e.kind === 'fetch-start' && e.id === id).length;
+  equal([counters.storageReads - reads, fetches, a.sqft, b.sqft], [1, 1, 800, 800], '[storage reads, fetches, a, b]');
+  await idle();
+});
+
+test('rmse.lookups() shows each listing\'s state while it runs', async () => {
+  const id = needsOcr();
+  slowFetch.add(id);
+  const pending = getSize(id, 'visible');
+  await sleep(50);
+  const during = globalThis.rmse.lookups()[id];
+  await pending;
+  assert(/^fast, visible, fetching property page/.test(during), `got "${during}"`);
+  equal(globalThis.rmse.lookups()[id], undefined, 'removed once settled');
+  await idle();
+  return during;
+});
+
+test('the agents\' websites setting follows the optional permission', () => {
+  permissionListeners.added({ origins: ['https://*/*'] });
+  const afterAdd = synced.externalBrochures;
+  permissionListeners.removed({ origins: ['https://*/*'] });
+  const afterRemove = synced.externalBrochures;
+  permissionListeners.added({ origins: ['https://example.com/*'] });
+  equal([afterAdd, afterRemove, synced.externalBrochures], [true, false, false], '[added, removed, unrelated origin]');
 });
