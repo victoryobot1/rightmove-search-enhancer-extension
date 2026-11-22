@@ -1,0 +1,150 @@
+{
+ "note": "Trimmed from a list page's __NEXT_DATA__ searchResults on 2026-11-22: 3 listings with displaySize, 3 without.",
+ "resultCount": "95",
+ "properties": [
+  {
+   "id": 95728494,
+   "location": {
+    "latitude": 51.531315,
+    "longitude": -0.095274
+   },
+   "displaySize": "726 sq. ft.",
+   "summary": "A luxury two bedroom apartment with a balcony offered furnished in a striking contemporary canal side development halfway between the trendy Angel and Hoxton. The property offers modern, open plan living space with a fully integrated kitchen extending onto the living room and balcony....",
+   "numberOfFloorplans": 1,
+   "bedrooms": 2,
+   "bathrooms": 1,
+   "propertySubType": "Flat",
+   "propertyUrl": "/properties/95728494#/?channel=RES_LET",
+   "price": {
+    "amount": 725,
+    "displayPrices": [
+     {
+      "displayPrice": "£3,142 pcm",
+      "displayPriceQualifier": "",
+      "abbreviatedPrice": "£3.1k"
+     }
+    ]
+   }
+  },
+  {
+   "id": 94425615,
+   "location": {
+    "latitude": 51.52602,
+    "longitude": -0.101101
+   },
+   "displaySize": "646 sq. ft.",
+   "summary": "The Storey: Set on the first floor of Tompion House, this beautifully renovated three-bedroom apartment offers generous proportions, stylish interiors and an excellent Clerkenwell location. Recently refurbished to an impressive standard throughout, the apartment has been thoughtfully des...",
+   "numberOfFloorplans": 1,
+   "bedrooms": 3,
+   "bathrooms": 1,
+   "propertySubType": "Apartment",
+   "propertyUrl": "/properties/94425615#/?channel=RES_LET",
+   "price": {
+    "amount": 3100,
+    "displayPrices": [
+     {
+      "displayPrice": "£3,100 pcm",
+      "displayPriceQualifier": "",
+      "abbreviatedPrice": "£3.1k"
+     }
+    ]
+   }
+  },
+  {
+   "id": 94821477,
+   "location": {
+    "latitude": 51.529861,
+    "longitude": -0.096832
+   },
+   "displaySize": "848 sq. ft.",
+   "summary": "Fully furnished 2-bed apartment with en suite, modern kitchen, 24/7 concierge, pool, and parking (by negotiation). Prime city location near shops, cafes, and transport links.",
+   "numberOfFloorplans": 1,
+   "bedrooms": 2,
+   "bathrooms": 2,
+   "propertySubType": "Apartment",
+   "propertyUrl": "/properties/94821477#/?channel=RES_LET",
+   "price": {
+    "amount": 4000,
+    "displayPrices": [
+     {
+      "displayPrice": "£4,000 pcm",
+      "displayPriceQualifier": "",
+      "abbreviatedPrice": "£4k"
+     }
+    ]
+   }
+  },
+  {
+   "id": 95408958,
+   "location": {
+    "latitude": 51.531778,
+    "longitude": -0.113877
+   },
+   "displaySize": "",
+   "summary": "Regent are proud to present this spacious two-bedroom apartment situated in Eyre Court development, close to Kings Cross Quarter, N1. Would you prefer to communicate on WeChat? Add us at RegentLettings. The apartment comprises two double bedroom with ...",
+   "numberOfFloorplans": 0,
+   "bedrooms": 2,
+   "bathrooms": 2,
+   "propertySubType": "Apartment",
+   "propertyUrl": "/properties/95408958#/?channel=RES_LET",
+   "price": {
+    "amount": 3750,
+    "displayPrices": [
+     {
+      "displayPrice": "£3,750 pcm",
+      "displayPriceQualifier": "",
+      "abbreviatedPrice": "£3.8k"
+     }
+    ]
+   }
+  },
+  {
+   "id": 95685954,
+   "location": {
+    "latitude": 51.539448,
+    "longitude": -0.10396
+   },
+   "displaySize": "",
+   "summary": "A stunning two bedroom two bathroom period maisonette with private garden, available for long let set within this impressive Victorian conversion in the heart of Islington, N1.",
+   "numberOfFloorplans": 1,
+   "bedrooms": 2,
+   "bathrooms": 2,
+   "propertySubType": "Apartment",
+   "propertyUrl": "/properties/95685954#/?channel=RES_LET",
+   "price": {
+    "amount": 950,
+    "displayPrices": [
+     {
+      "displayPrice": "£4,117 pcm",
+      "displayPriceQualifier": "",
+      "abbreviatedPrice": "£4.1k"
+     }
+    ]
+   }
+  },
+  {
+   "id": 93182211,
+   "location": {
+    "latitude": 51.531571,
+    "longitude": -0.114071
+   },
+   "displaySize": "",
+   "summary": "Reference Number: PR201008\nExperience the pinnacle of modern city living in this 2-bedroom, 2-bathroom apartment in King‘s Cross, London. Nestled on the 3rd floor of Fitzgerald Court, this part-furnished flat spans 925.70 sqft, with a south-facing balcony that soaks in natural light. Residents be...",
+   "numberOfFloorplans": 1,
+   "bedrooms": 2,
+   "bathrooms": 2,
+   "propertySubType": "Flat",
+   "propertyUrl": "/properties/93182211#/?channel=RES_LET",
+   "price": {
+    "amount": 1021,
+    "displayPrices": [
+     {
+      "displayPrice": "£4,424 pcm",
+      "displayPriceQualifier": "Guide Price",
+      "abbreviatedPrice": "£4.4k"
+     }
+    ]
+   }
+  }
+ ]
+}

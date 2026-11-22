@@ -1,14 +1,14 @@
 import { DEFAULT_SETTINGS, getSettings } from './settings.js';
-import { RIGHTMOVE_URL, isRightmoveUrl } from './site.js';
+import { SITES, siteForUrl } from './sites/index.js';
 
 const EXTERNAL_ORIGINS = { origins: ['https://*/*'] }; // brochure links are upgraded to https
 
 async function init() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!isRightmoveUrl(tab?.url)) {
+  if (!siteForUrl(tab?.url)) {
     document.getElementById('unsupported').hidden = false;
     document.getElementById('openRightmove').addEventListener('click', () => {
-      chrome.tabs.create({ url: RIGHTMOVE_URL });
+      chrome.tabs.create({ url: SITES.rightmove.homeUrl });
       window.close();
     });
     return;

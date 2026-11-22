@@ -145,6 +145,20 @@ export function sizeFromListingText(descriptionHtml, keyFeatures = []) {
   return candidates[0] ?? null;
 }
 
+/**
+ * Reads the Size field as search results show it (`displaySize`: "1,102 sq. ft.", "61 sq. m.").
+ * Same figure as `sizings` on the property page, so a lookup would find the same answer.
+ */
+export function sizeFromDisplaySize(text) {
+  const m = String(text || '').match(/([\d,]+(?:\.\d+)?)\s*sq\.?\s*(ft|m)/i);
+  if (!m) return null;
+  const value = parseFloat(m[1].replace(/,/g, ''));
+  const fromMetric = m[2].toLowerCase() === 'm';
+  const sqft = Math.round(fromMetric ? value * SQFT_PER_SQM : value);
+  if (!isPlausibleSqft(sqft)) return null;
+  return { sqft, sqm: Math.round(sqft / SQFT_PER_SQM), fromMetric, snippet: '' };
+}
+
 /** Reads Rightmove's structured `sizings` array (the "Size" section on a listing). */
 export function sizeFromSizings(sizings) {
   if (!Array.isArray(sizings)) return null;

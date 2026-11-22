@@ -1,6 +1,6 @@
 // Finding the total floor area in free text (descriptions, OCR output, brochures).
 import { test, equal } from '../lib/t.js';
-import { findSize, sizeFromListingText, sizeFromSizings } from '/src/extract.js';
+import { findSize, sizeFromDisplaySize, sizeFromListingText, sizeFromSizings } from '/src/extract.js';
 
 const CASES = [
   // Floorplan totals, including common OCR misreads
@@ -50,6 +50,14 @@ test('sizeFromSizings: normal sq ft entry', () =>
 test('sizeFromSizings: falls back to m² when sq ft is implausible', () => {
   const size = sizeFromSizings([{ unit: 'sqft', minimumSize: 1 }, { unit: 'sqm', minimumSize: 67, maximumSize: 67 }]);
   equal([size?.sqft, size?.fromMetric], [721, true]);
+});
+
+test('sizeFromDisplaySize: the Size field as search results show it', () => {
+  const read = (text) => {
+    const size = sizeFromDisplaySize(text);
+    return size && [size.sqft, size.fromMetric];
+  };
+  equal(['1,102 sq. ft.', '61 sq. m.', '', '1 sq. ft.', 'Ask agent'].map(read), [[1102, false], [657, true], null, null, null]);
 });
 
 test('sizeFromSizings: range', () =>

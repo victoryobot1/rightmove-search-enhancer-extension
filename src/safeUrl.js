@@ -1,15 +1,4 @@
-export const RIGHTMOVE_URL = 'https://www.rightmove.co.uk/';
-
-// Chrome only exposes tab URLs for hosts we have permission for, so any other
-// site arrives here as `undefined` — which is correctly treated as "not Rightmove".
-export function isRightmoveUrl(url) {
-  try {
-    const { protocol, hostname } = new URL(url);
-    return protocol === 'https:' && /(^|\.)rightmove\.co\.uk$/i.test(hostname);
-  } catch {
-    return false;
-  }
-}
+// Checks on URLs taken from listings (agent-written brochure links) before we fetch them.
 
 const LOCAL_NAME_RE = /(^|\.)(localhost|local|localdomain|internal|intranet|lan|home|corp|home\.arpa)$/i;
 

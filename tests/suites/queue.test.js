@@ -20,13 +20,14 @@ const store = {};
 const counters = { fetches: 0, maxFetches: 0, ocr: 0, maxOcr: 0, closedOffscreen: 0, storageReads: 0 };
 const hangs = new Set(); // ids whose OCR job never finishes
 let messageListener;
+const installedListeners = [];
 const permissionListeners = {};
 const synced = {}; // what background.js wrote to storage.sync
 
 globalThis.chrome = {
   tabs: { onUpdated: { addListener() {} }, query: async () => [] },
   runtime: {
-    onInstalled: { addListener() {} },
+    onInstalled: { addListener(fn) { installedListeners.push(fn); } },
     onStartup: { addListener() {} },
     onMessage: { addListener(fn) { messageListener ??= fn; } },
     getContexts: async () => [{}], // pretend the offscreen document exists
@@ -46,7 +47,11 @@ globalThis.chrome = {
   },
   storage: {
     local: {
-      get: async (k) => { counters.storageReads++; return k === null ? { ...store } : { [k]: store[k] }; },
+      get: async (k) => {
+        counters.storageReads++;
+        if (k === null) return { ...store };
+        return Object.fromEntries((Array.isArray(k) ? k : [k]).filter((x) => x in store).map((x) => [x, store[x]]));
+      },
       set: async (o) => Object.assign(store, o),
       remove: async (keys) => keys.forEach((k) => delete store[k]),
     },
@@ -97,7 +102,8 @@ await import('/src/background.js');
 globalThis.rmse.logging = false;
 
 const send = (msg) => new Promise((resolve) => { if (!messageListener(msg, {}, resolve)) resolve(undefined); });
-const getSize = (id, priority = 'nearby', force = false) => send({ type: 'getSize', id, priority, force });
+const rm = (id) => ({ site: 'rightmove', id });
+const getSize = (id, priority = 'nearby', force = false) => send({ type: 'getSize', listing: rm(id), priority, force });
 const idle = async () => { while (counters.fetches || counters.ocr) await sleep(20); await sleep(50); };
 const ocrOrder = (ids) => events.filter((e) => e.kind === 'ocr-start' && ids.includes(e.id)).map((e) => e.id);
 const ranOcr = (id) => events.some((e) => e.kind === 'ocr-start' && e.id === id);
@@ -148,7 +154,7 @@ test('a card scrolled on screen jumps the OCR queue', async () => {
   const a = needsOcr(), b = needsOcr(), c = needsOcr();
   const p = [done, getSize(a), getSize(b), getSize(c)];
   await sleep(FETCH_MS * 2 + 40); // a, b, c are all waiting for OCR
-  await send({ type: 'setPriority', id: c, priority: 'visible' });
+  await send({ type: 'setPriority', listing: rm(c), priority: 'visible' });
   await Promise.all(p);
   equal(named({ [blocker]: 'blocker', [a]: 'a', [b]: 'b', [c]: 'c' })(ocrOrder([blocker, a, b, c])), 'blocker → c → a → b', 'order');
   await idle();
@@ -160,7 +166,7 @@ test('a priority change arriving during the cache check is kept', async () => {
   const p = [done, getSize(old1), getSize(old2)];
   await sleep(5);
   p.push(getSize(racer, 'nearby'));
-  send({ type: 'setPriority', id: racer, priority: 'visible' }); // same tick, before the lookup registers
+  send({ type: 'setPriority', listing: rm(racer), priority: 'visible' }); // same tick, before the lookup registers
   await Promise.all(p);
   equal(named({ [blocker]: 'blocker', [old1]: 'old1', [old2]: 'old2', [racer]: 'racer' })(ocrOrder([blocker, old1, old2, racer])), 'blocker → racer → old1 → old2', 'order');
   await idle();
@@ -171,10 +177,10 @@ test('cancel removes a lookup waiting for OCR, which never runs or gets cached',
   const victim = needsOcr();
   const pending = getSize(victim);
   await sleep(FETCH_MS + 30);
-  const reply = await send({ type: 'cancelSize', id: victim });
+  const reply = await send({ type: 'cancelSize', listing: rm(victim) });
   const result = await pending;
   await done;
-  equal([reply?.cancelled, result.status, ranOcr(victim), Boolean(store[`size:${victim}`])], [true, 'cancelled', false, false], '[cancelled, status, ran OCR, cached]');
+  equal([reply?.cancelled, result.status, ranOcr(victim), Boolean(store[`size:rightmove:${victim}`])], [true, 'cancelled', false, false], '[cancelled, status, ran OCR, cached]');
   await idle();
 });
 
@@ -183,7 +189,7 @@ test('cancel during the fast lane stops it before OCR', async () => {
   slowFetch.add(victim);
   const pending = getSize(victim);
   await sleep(50); // its page fetch is in progress
-  const reply = await send({ type: 'cancelSize', id: victim });
+  const reply = await send({ type: 'cancelSize', listing: rm(victim) });
   const result = await pending;
   equal([reply?.cancelled, result.status, ranOcr(victim)], [true, 'cancelled', false], '[cancelled, status, ran OCR]');
   await idle();
@@ -194,7 +200,7 @@ test('a cancelled property can be requested again (unhidden)', async () => {
   const id = needsOcr();
   const pending = getSize(id);
   await sleep(FETCH_MS + 30);
-  await send({ type: 'cancelSize', id });
+  await send({ type: 'cancelSize', listing: rm(id) });
   await pending;
   const again = await getSize(id, 'visible');
   await done;
@@ -228,7 +234,7 @@ test('a stuck OCR job times out, restarts the OCR engine, and the lane moves on'
   const ms = now() - start;
   equal([stuckResult.status, nextResult.status, nextResult.sqft], ['error', 'found', 720], '[stuck, next, next sqft]');
   equal(counters.closedOffscreen > closedBefore, true, 'OCR engine restarted');
-  equal(Boolean(store[`size:${stuck}`]), false, 'timed-out result cached');
+  equal(Boolean(store[`size:rightmove:${stuck}`]), false, 'timed-out result cached');
   await idle();
   return `both settled after ${ms}ms (job limit ${TIMEOUTS.offscreenMs}ms)`;
 });
@@ -256,8 +262,8 @@ test('slot limits hold under load and both lanes drain', async () => {
 test('a priority change for a settled lookup is dropped, not applied to a later retry', async () => {
   const late = needsOcr();
   await getSize(late);
-  await send({ type: 'setPriority', id: late, priority: 'visible' }); // arrives just after it settled
-  equal(globalThis.rmse.lookups()[late], undefined, 'no record kept');
+  await send({ type: 'setPriority', listing: rm(late), priority: 'visible' }); // arrives just after it settled
+  equal(globalThis.rmse.lookups()[`rightmove:${late}`], undefined, 'no record kept');
   const { blocker, done } = await startBlocker();
   const older = needsOcr();
   const p = [done, getSize(older)];
@@ -282,10 +288,10 @@ test('rmse.lookups() shows each listing\'s state while it runs', async () => {
   slowFetch.add(id);
   const pending = getSize(id, 'visible');
   await sleep(50);
-  const during = globalThis.rmse.lookups()[id];
+  const during = globalThis.rmse.lookups()[`rightmove:${id}`];
   await pending;
   assert(/^fast, visible, fetching property page/.test(during), `got "${during}"`);
-  equal(globalThis.rmse.lookups()[id], undefined, 'removed once settled');
+  equal(globalThis.rmse.lookups()[`rightmove:${id}`], undefined, 'removed once settled');
   await idle();
   return during;
 });
@@ -297,4 +303,26 @@ test('the agents\' websites setting follows the optional permission', () => {
   const afterRemove = synced.externalBrochures;
   permissionListeners.added({ origins: ['https://example.com/*'] });
   equal([afterAdd, afterRemove, synced.externalBrochures], [true, false, false], '[added, removed, unrelated origin]');
+});
+
+test('listings that are malformed or from an unknown site are ignored', async () => {
+  const fetchesBefore = events.filter((e) => e.kind === 'fetch-start').length;
+  const replies = await Promise.all([
+    send({ type: 'getSize', listing: { site: 'rightmove', id: '12a' } }),
+    send({ type: 'getSize', listing: { site: 'rightmove', id: 123 } }), // a number, not a string
+    send({ type: 'getSize', listing: { site: 'rightmove', id: '123', extra: 'x' } }),
+    send({ type: 'getSize', listing: { site: 'zoopla', id: '123' } }),
+    send({ type: 'getSize', listing: { site: 'constructor', id: '123' } }), // not a registered site
+    send({ type: 'getSize', id: '123' }), // the old message shape
+  ]);
+  const fetches = events.filter((e) => e.kind === 'fetch-start').length - fetchesBefore;
+  equal([replies.every((r) => r === undefined), fetches], [true, 0], '[all ignored, property pages fetched]');
+});
+
+test('old "size:<id>" cache entries are deleted when the extension updates', async () => {
+  store['size:555'] = { status: 'found', sqft: 1000 };
+  store['size:rightmove:556'] = { status: 'found', sqft: 1000 };
+  for (const listener of installedListeners) listener({ reason: 'update' });
+  await sleep(20);
+  equal(['size:555' in store, 'size:rightmove:556' in store], [false, true], '[old key kept, new key kept]');
 });

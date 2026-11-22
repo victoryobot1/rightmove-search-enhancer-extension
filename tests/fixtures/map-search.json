@@ -1,0 +1,220 @@
+{
+ "note": "Trimmed from GET /api/property-search/map/search on 2026-11-22 (the example map search in tests/README.md): 3 pins with displaySize, 3 without.",
+ "query": "minBedrooms=2&furnishTypes=unfurnished&dontShow=houseShare%2Cretirement&minBathrooms=1&channel=RENT&index=0&retirement=false&houseFlatShare=false&letFurnishType=unfurnished&sortType=4&areaSizeUnit=sqft&viewType=MAP&maxPrice=3250&radius=3.0&locationIdentifier=STATION%5E245&numberOfPropertiesPerPage=95&viewport=-0.1608109745785602%2C-0.031034973601997695%2C51.51801034295928%2C51.554474590012646&transactionType=LETTING",
+ "resultCount": "139",
+ "searchParameters": {
+  "channel": "RENT",
+  "locationIdentifier": "STATION^245",
+  "viewport": "-0.1608109745785602,-0.031034973601997695,51.51801034295928,51.554474590012646",
+  "viewType": "LIST"
+ },
+ "geoJsonProperties": {
+  "type": "FeatureCollection",
+  "features": [
+   {
+    "type": "Feature",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      -0.095274,
+      51.531315
+     ]
+    },
+    "properties": {
+     "id": 95728494,
+     "location": {
+      "latitude": 51.531315,
+      "longitude": -0.095274
+     },
+     "displaySize": "726 sq. ft.",
+     "summary": "A luxury two bedroom apartment with a balcony offered furnished in a striking contemporary canal side development halfway between the trendy Angel and Hoxton. The property offers modern, open plan living space with a fully integrated kitchen extending onto the living room and balcony....",
+     "numberOfFloorplans": 1,
+     "bedrooms": 2,
+     "bathrooms": 1,
+     "propertySubType": "Flat",
+     "propertyUrl": "/properties/95728494#/?channel=RES_LET",
+     "price": {
+      "amount": 725,
+      "displayPrices": [
+       {
+        "displayPrice": "£3,142 pcm",
+        "displayPriceQualifier": "",
+        "abbreviatedPrice": "£3.1k"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "type": "Feature",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      -0.13323,
+      51.529876
+     ]
+    },
+    "properties": {
+     "id": 93275232,
+     "location": {
+      "latitude": 51.529876,
+      "longitude": -0.13323
+     },
+     "displaySize": "",
+     "summary": "A well-presented penthouse is well located within short walking distance to Euston Square and local amenities. ",
+     "numberOfFloorplans": 0,
+     "bedrooms": 2,
+     "bathrooms": 1,
+     "propertySubType": "Apartment",
+     "propertyUrl": "/properties/93275232#/?channel=RES_LET",
+     "price": {
+      "amount": 2600,
+      "displayPrices": [
+       {
+        "displayPrice": "£2,600 pcm",
+        "displayPriceQualifier": "",
+        "abbreviatedPrice": "£2.6k"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "type": "Feature",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      -0.133192,
+      51.529869
+     ]
+    },
+    "properties": {
+     "id": 95065563,
+     "location": {
+      "latitude": 51.529869,
+      "longitude": -0.133192
+     },
+     "displaySize": "",
+     "summary": "A well-presented penthouse is well located within short walking distance to Euston Square and local amenities. ",
+     "numberOfFloorplans": 1,
+     "bedrooms": 2,
+     "bathrooms": 1,
+     "propertySubType": "Apartment",
+     "propertyUrl": "/properties/95065563#/?channel=RES_LET",
+     "price": {
+      "amount": 2550,
+      "displayPrices": [
+       {
+        "displayPrice": "£2,550 pcm",
+        "displayPriceQualifier": "",
+        "abbreviatedPrice": "£2.6k"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "type": "Feature",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      -0.074557,
+      51.55196
+     ]
+    },
+    "properties": {
+     "id": 95308629,
+     "location": {
+      "latitude": 51.55196,
+      "longitude": -0.074557
+     },
+     "displaySize": "",
+     "summary": "Spacious 2-Bedroom Flat – Arcola Street, London, E8Available to Rent – Two-Bedroom Property in DalstonWe are pleased to present this attractive two-bedroom property located on Arcola Street, Londo... ** Property Reference: 3105934 **",
+     "numberOfFloorplans": 0,
+     "bedrooms": 2,
+     "bathrooms": 1,
+     "propertySubType": "Flat",
+     "propertyUrl": "/properties/95308629#/?channel=RES_LET",
+     "price": {
+      "amount": 2850,
+      "displayPrices": [
+       {
+        "displayPrice": "£2,850 pcm",
+        "displayPriceQualifier": "",
+        "abbreviatedPrice": "£2.9k"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "type": "Feature",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      -0.13965,
+      51.5485
+     ]
+    },
+    "properties": {
+     "id": 95628276,
+     "location": {
+      "latitude": 51.5485,
+      "longitude": -0.13965
+     },
+     "displaySize": "838 sq. ft.",
+     "summary": "ZERO DEPOSIT AVAILABLE. LONG LET. Set within an imposing period conversion, this spacious 2 bedroom garden flat features a bright reception room, separate kitchen and a generous south-facing garden.",
+     "numberOfFloorplans": 1,
+     "bedrooms": 2,
+     "bathrooms": 1,
+     "propertySubType": "Flat",
+     "propertyUrl": "/properties/95628276#/?channel=RES_LET",
+     "price": {
+      "amount": 3250,
+      "displayPrices": [
+       {
+        "displayPrice": "£3,250 pcm",
+        "displayPriceQualifier": "",
+        "abbreviatedPrice": "£3.3k"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "type": "Feature",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      -0.080448,
+      51.537193
+     ]
+    },
+    "properties": {
+     "id": 95293194,
+     "location": {
+      "latitude": 51.537193,
+      "longitude": -0.080448
+     },
+     "displaySize": "797 sq. ft.",
+     "summary": "Bright split-level 2 bed, 2 bath canalside flat in De Beauvoir N1 with private balcony, lift, secure entry and excellent storage.",
+     "numberOfFloorplans": 0,
+     "bedrooms": 2,
+     "bathrooms": 2,
+     "propertySubType": "Flat",
+     "propertyUrl": "/properties/95293194#/?channel=RES_LET",
+     "price": {
+      "amount": 3250,
+      "displayPrices": [
+       {
+        "displayPrice": "£3,250 pcm",
+        "displayPriceQualifier": "",
+        "abbreviatedPrice": "£3.3k"
+       }
+      ]
+     }
+    }
+   }
+  ]
+ }
+}
