@@ -13,7 +13,7 @@
   "content_scripts": [
     {
       "matches": ["https://*.rightmove.co.uk/*"],
-      "js": ["src/content.js"],
+      "js": ["src/shared/listing.js", "src/content/core.js", "src/content/rightmove.js"],
       "css": ["src/content.css"],
       "run_at": "document_idle"
     }

@@ -1,6 +1,10 @@
-// Which URLs count as Rightmove (toolbar icon colour, popup message).
-import { test, equal } from '../lib/t.js';
-import { isRightmoveUrl, safeExternalUrl } from '/src/site.js';
+// Which site a URL belongs to (toolbar icon colour, popup message), and which brochure
+// links are safe to fetch.
+import { test, equal, fixture } from '../lib/t.js';
+import { siteForUrl } from '/src/sites/index.js';
+import rightmove from '/src/sites/rightmove.js';
+import { safeExternalUrl } from '/src/safeUrl.js';
+import '/src/shared/listing.js';
 
 const CASES = [
   ['https://www.rightmove.co.uk/property-for-sale/find.html', true],
@@ -22,7 +26,7 @@ const CASES = [
 ];
 
 for (const [url, want] of CASES) {
-  test(`${want ? 'is' : 'not'} Rightmove: ${url}`, () => equal(isRightmoveUrl(url), want));
+  test(`${want ? 'is' : 'not'} Rightmove: ${url}`, () => equal(siteForUrl(url)?.id === 'rightmove', want));
 }
 
 // Brochure links (agent-written) must be public https URLs; http is upgraded.
@@ -53,3 +57,36 @@ const BROCHURE_CASES = [
 for (const [raw, want] of BROCHURE_CASES) {
   test(`brochure link ${want ? 'allowed' : 'refused'}: ${raw}`, () => equal(safeExternalUrl(raw)?.href ?? null, want));
 }
+
+// Listings: one object per listing, one string key per object.
+test('listing keys: Rightmove', () => equal(globalThis.listingKey({ site: 'rightmove', id: '95556576' }), 'rightmove:95556576'));
+
+test('listing keys: composite identities are ordered by field name and encoded', () =>
+  equal(globalThis.listingKey({ site: 'x', ref: 'a/b:c', branch: '12' }), 'x:12:a%2Fb%3Ac'));
+
+test('Rightmove listings: exactly a site and a numeric id', () =>
+  equal(
+    [
+      { site: 'rightmove', id: '95556576' },
+      { site: 'rightmove', id: 95556576 },
+      { site: 'rightmove', id: '9555a' },
+      { site: 'rightmove', id: '1', extra: 'x' },
+      { site: 'rightmove' },
+    ].map((listing) => rightmove.isListing(listing)),
+    [true, false, false, false, false],
+  ));
+
+// Reading real property pages (saved in fixtures/page-models).
+test('Rightmove: reads a real property page with a Size field', async () => {
+  const page = rightmove.readListing(await fixture('page-models/173701142.html'));
+  const sqft = page.sizings.find((s) => s.unit === 'sqft')?.minimumSize;
+  equal([sqft, page.floorplans.length, page.keyFeatures.length, page.description.startsWith('Century 21 Heritage')], [1475, 1, 7, true]);
+});
+
+test('Rightmove: reads a real property page without one', async () => {
+  const page = rightmove.readListing(await fixture('page-models/94142151.html'));
+  const onRightmove = (url) => url.startsWith('https://media.rightmove.co.uk/');
+  equal([page.sizings, page.floorplans.length > 0 && page.floorplans.every(onRightmove), page.brochures.length], [[], true, 1]);
+});
+
+test('Rightmove: a page without a model reads as null', () => equal(rightmove.readListing('<html></html>'), null));

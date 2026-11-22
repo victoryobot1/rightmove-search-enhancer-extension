@@ -1,6 +1,6 @@
 /* global Tesseract */
 import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
-import { safeExternalUrl } from './site.js';
+import { safeExternalUrl } from './safeUrl.js';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('vendor/pdfjs/pdf.worker.min.mjs');
 

@@ -1,12 +1,23 @@
-import { extractPageModel } from './pageModel.js';
-import { findSize, sizeFromListingText, sizeFromSizings } from './extract.js';
+import './shared/listing.js';
+import {
+  SQFT_PER_SQM,
+  findFloorAreas,
+  findSize,
+  namedFloors,
+  sizeFromDisplaySize,
+  sizeFromListingText,
+  sizeFromSizings,
+} from './extract.js';
 import { estimateFromRooms, readRooms } from './estimate.js';
 import { getSettings } from './settings.js';
-import { isRightmoveUrl, safeExternalUrl } from './site.js';
+import { safeExternalUrl } from './safeUrl.js';
+import { SITES, parseListing, siteForUrl } from './sites/index.js';
 
-const CACHE_PREFIX = 'size:';
+const { listingKey } = globalThis;
+
+const CACHE_PREFIX = 'size:'; // + listingKey(listing), e.g. "size:rightmove:95556576"
 // Bump when extraction rules change so results cached by older versions are looked up again.
-const CACHE_VERSION = 6;
+const CACHE_VERSION = 7;
 const TTL_FOUND_MS = 14 * 24 * 60 * 60 * 1000;
 const TTL_NONE_MS = 24 * 60 * 60 * 1000; // agents often add floorplans after listing
 // Fast lane: fetch the property page and check the Size field + description (network only).
@@ -48,6 +59,10 @@ const BASE_CONFIDENCE = {
   brochureOcr: 78,
 };
 
+// A floorplan that states only one floor's area, of a home with more floors, and nothing
+// better found: shown, but red.
+const PART_AREA_CONFIDENCE = 40;
+
 function confidenceFor(source, size) {
   if (source === 'listing') return size.fromMetric ? 95 : 97;
   const contextBonus = Math.max(-12, Math.min(8, Math.round((size.score ?? 0) * 1.5)));
@@ -55,7 +70,7 @@ function confidenceFor(source, size) {
 }
 
 // ---------------------------------------------------------------------------
-// Toolbar icon: coloured on Rightmove, greyed out everywhere else (the manifest default).
+// Toolbar icon: coloured on supported sites, greyed out everywhere else (the manifest default).
 // The popup still opens when greyed out, so it can explain why.
 
 // Leading slash matters: in a service worker, setIcon resolves relative paths against the
@@ -68,7 +83,7 @@ const INACTIVE_ICONS = {
 };
 
 async function updateActionForTab(tabId, url) {
-  const active = isRightmoveUrl(url);
+  const active = Boolean(siteForUrl(url));
   try {
     await chrome.action.setIcon({ tabId, path: active ? ACTIVE_ICONS : INACTIVE_ICONS });
     await chrome.action.setTitle({
@@ -88,8 +103,33 @@ async function updateActionForAllTabs() {
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.url || changeInfo.status === 'loading') updateActionForTab(tabId, tab.url);
 });
-chrome.runtime.onInstalled.addListener(updateActionForAllTabs);
+chrome.runtime.onInstalled.addListener(() => {
+  updateActionForAllTabs();
+  dropLegacyCacheKeys();
+});
 chrome.runtime.onStartup.addListener(updateActionForAllTabs);
+
+// Before listings were keyed by site, sizes were cached as "size:<id>". Nothing reads
+// those any more; they would only take up space.
+async function dropLegacyCacheKeys() {
+  const all = await chrome.storage.local.get(null);
+  const legacy = Object.keys(all).filter((key) => /^size:\d+$/.test(key));
+  if (legacy.length) await chrome.storage.local.remove(legacy);
+}
+
+// ---------------------------------------------------------------------------
+// The "agents' websites" brochure setting follows the optional permission, whichever way
+// it changes: the popup can close while Chrome's permission prompt is open (so its own
+// save never runs), and the permission can be removed in chrome://extensions.
+
+const EXTERNAL_ORIGINS = 'https://*/*';
+
+chrome.permissions.onAdded.addListener(({ origins = [] }) => {
+  if (origins.includes(EXTERNAL_ORIGINS)) chrome.storage.sync.set({ externalBrochures: true });
+});
+chrome.permissions.onRemoved.addListener(({ origins = [] }) => {
+  if (origins.includes(EXTERNAL_ORIGINS)) chrome.storage.sync.set({ externalBrochures: false });
+});
 
 // ---------------------------------------------------------------------------
 // Messaging
@@ -97,17 +137,28 @@ chrome.runtime.onStartup.addListener(updateActionForAllTabs);
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.target === 'offscreen') return false;
 
-  if (msg?.type === 'getSize' && /^\d+$/.test(String(msg.id))) {
-    getSize(String(msg.id), Boolean(msg.force), msg.priority).then(sendResponse);
+  // getSize, setPriority and cancelSize name a listing; ignore any that doesn't check out.
+  const listing = parseListing(msg?.listing);
+  if (msg?.type === 'getSize' && listing) {
+    getSize(listing, Boolean(msg.force), msg.priority).then(sendResponse);
     return true;
   }
-  if (msg?.type === 'setPriority' && /^\d+$/.test(String(msg.id))) {
-    setPriority(String(msg.id), msg.priority);
+  if (msg?.type === 'setPriority' && listing) {
+    setPriority(listingKey(listing), msg.priority);
     return false;
   }
-  if (msg?.type === 'cancelSize' && /^\d+$/.test(String(msg.id))) {
-    sendResponse({ cancelled: cancelQueued(String(msg.id)) });
+  if (msg?.type === 'cancelSize' && listing) {
+    sendResponse({ cancelled: cancelQueued(listingKey(listing)) });
     return false;
+  }
+  if (msg?.type === 'searchSizes' && typeof msg.pageUrl === 'string') {
+    searchSizes(msg.pageUrl, msg.data)
+      .catch((err) => {
+        console.warn('Search sizes failed', msg.pageUrl, err);
+        return [];
+      })
+      .then(sendResponse);
+    return true;
   }
   if (msg?.type === 'clearCache') {
     clearCache().then(sendResponse);
@@ -128,19 +179,37 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 // property page being viewed goes first, then cards on screen, then cards further down.
 //
 // Queue logging is shown in the service worker console: chrome://extensions → this
-// extension → "Inspect views: service worker". There, `rmse.queue()` prints a snapshot
-// and `rmse.logging = false` silences it.
+// extension → "Inspect views: service worker". There, `rmse.queue()` prints a snapshot,
+// `rmse.lookups()` lists each listing's state, and `rmse.logging = false` silences it.
 
 const PRIORITY = { page: 0, visible: 1, nearby: 2 };
 const PRIORITY_NAMES = Object.keys(PRIORITY);
-const priorities = new Map(); // id -> PRIORITY value, only while a lookup is in flight
-// A priority change can arrive while getSize is still checking the cache, before the
-// lookup is registered; hold it here so it isn't lost.
-const pendingPriority = new Map();
-const priorityOf = (id) => priorities.get(id) ?? PRIORITY.nearby;
 
-const inFlight = new Map();
-const skipOcr = new Set(); // cancelled while in the fast lane: don't continue to OCR
+// One record per listing while it's being looked up ("M1" in docs/state-machines.md). It's
+// created synchronously when getSize is first called, so priority changes and repeat
+// requests that arrive during the cache check find it, and deleted once the lookup settles.
+//   checkingCache → fastQueued → fast → ocrQueued → ocr     (queued states are skipped
+//                                                             when a slot is free)
+// `cancelRequested` is set when a cancel arrives while the fast lane is running: the
+// lookup then stops before OCR.
+const NEXT_STATES = {
+  checkingCache: ['fastQueued', 'fast'],
+  fastQueued: ['fast'],
+  fast: ['ocrQueued', 'ocr'],
+  ocrQueued: ['ocr'],
+  ocr: [],
+};
+// Keyed by listingKey(listing); lanes, logs and rmse.lookups() show that key as the id.
+const lookups = new Map(); // key -> { listing, state, priority, force, cancelRequested, promise }
+const priorityOf = (key) => lookups.get(key)?.priority ?? PRIORITY.nearby;
+
+function moveTo(key, state) {
+  const entry = lookups.get(key);
+  if (!entry || entry.state === state) return;
+  // Never throws: an unexpected transition is a bug worth seeing, not worth a failed lookup.
+  if (!NEXT_STATES[entry.state]?.includes(state)) console.warn(`[lookup] ${key}: unexpected ${entry.state} → ${state}`);
+  entry.state = state;
+}
 
 const secs = (since) => `${((performance.now() - since) / 1000).toFixed(1)}s`;
 const cancelled = () => ({ status: 'cancelled' });
@@ -155,10 +224,12 @@ function summarise(result) {
 const byPriority = (a, b) => priorityOf(a.id) - priorityOf(b.id) || a.since - b.since;
 
 class Lane {
-  constructor(name, slots, colour) {
+  constructor(name, slots, colour, [queuedState, runningState]) {
     this.name = name;
     this.slots = slots;
     this.colour = colour;
+    this.queuedState = queuedState;
+    this.runningState = runningState;
     this.active = 0;
     this.waiting = []; // { id, since, resolve(go: boolean) }
     this.running = new Map(); // id -> { since, stage }
@@ -169,6 +240,7 @@ class Lane {
     if (this.active < this.slots) {
       this.active++;
     } else {
+      moveTo(id, this.queuedState);
       // A finishing lookup hands its slot straight to us (go = true), or we're cancelled.
       const go = await new Promise((resolve) => {
         this.waiting.push({ id, since: queuedAt, resolve });
@@ -176,6 +248,7 @@ class Lane {
       });
       if (!go) return cancelled();
     }
+    moveTo(id, this.runningState);
     this.running.set(id, { since: performance.now(), stage: 'starting' });
     this.log('start', id, `waited ${secs(queuedAt)}, priority ${PRIORITY_NAMES[priorityOf(id)]}`);
     try {
@@ -252,12 +325,20 @@ class Lane {
   }
 }
 
-const fastLane = new Lane('fast', FAST_LANE_SLOTS, '#00a88f');
-const ocrLane = new Lane('ocr', OCR_LANE_SLOTS, '#d97706');
+const fastLane = new Lane('fast', FAST_LANE_SLOTS, '#00a88f', ['fastQueued', 'fast']);
+const ocrLane = new Lane('ocr', OCR_LANE_SLOTS, '#d97706', ['ocrQueued', 'ocr']);
 
 globalThis.rmse = {
   logging: true,
   queue: () => ({ fast: fastLane.snapshot(), ocr: ocrLane.snapshot() }),
+  lookups: () =>
+    Object.fromEntries(
+      [...lookups].map(([id, e]) => {
+        const stage = (fastLane.running.get(id) ?? ocrLane.running.get(id))?.stage;
+        const parts = [e.state, PRIORITY_NAMES[e.priority], e.cancelRequested && 'cancel requested', stage];
+        return [id, parts.filter(Boolean).join(', ')];
+      }),
+    ),
 };
 
 function logEvent(event, id, detail) {
@@ -269,80 +350,107 @@ function setStage(id, stage) {
   ocrLane.setStage(id, stage);
 }
 
-function setPriority(id, name) {
-  if (!(name in PRIORITY)) return;
-  if (!inFlight.has(id)) {
-    pendingPriority.set(id, PRIORITY[name]);
-    return;
-  }
-  const current = priorityOf(id);
+// A change for a listing that isn't being looked up (it just settled) is dropped.
+function setPriority(key, name) {
+  const entry = lookups.get(key);
+  if (!entry || !(name in PRIORITY)) return;
   // The property page someone is looking at stays first, whatever another tab's cards say.
-  if (current === PRIORITY.page || current === PRIORITY[name]) return;
-  priorities.set(id, PRIORITY[name]);
+  if (entry.priority === PRIORITY.page || entry.priority === PRIORITY[name]) return;
+  entry.priority = PRIORITY[name];
   for (const lane of [fastLane, ocrLane]) {
-    if (lane.has(id)) lane.log('priority', id, `now ${name}, position ${lane.position(id)}`);
+    if (lane.has(key)) lane.log('priority', key, `now ${name}, position ${lane.position(key)}`);
   }
 }
 
 // Drops a lookup that hasn't started (e.g. the user hid that property). One in the fast
 // lane is stopped before it reaches OCR; one already doing OCR is left to finish, and its
 // result is cached like any other.
-function cancelQueued(id) {
-  if (fastLane.cancel(id) || ocrLane.cancel(id)) return true;
-  if (fastLane.running.has(id)) {
-    skipOcr.add(id);
-    logEvent('cancel', id, 'in fast lane now; will not continue to OCR');
+function cancelQueued(key) {
+  if (fastLane.cancel(key) || ocrLane.cancel(key)) return true;
+  if (fastLane.running.has(key)) {
+    lookups.get(key).cancelRequested = true;
+    logEvent('cancel', key, 'in fast lane now; will not continue to OCR');
     return true;
   }
-  logEvent('cancel ignored', id, ocrLane.running.has(id) ? 'already doing OCR' : 'not queued');
+  logEvent('cancel ignored', key, ocrLane.running.has(key) ? 'already doing OCR' : 'not queued');
   return false;
 }
 
-async function lookup(id) {
-  try {
-    const quick = await fastLane.run(id, () => quickLookup(id));
-    if (quick.status !== 'needsOcr') return quick;
-    if (skipOcr.has(id)) return cancelled();
-    return await ocrLane.run(id, () => ocrLookup(id, quick));
-  } finally {
-    skipOcr.delete(id);
-  }
+async function lookup(key, listing) {
+  const quick = await fastLane.run(key, () => quickLookup(key, listing));
+  if (quick.status !== 'needsOcr') return quick;
+  if (lookups.get(key)?.cancelRequested) return cancelled();
+  return ocrLane.run(key, () => ocrLookup(key, quick));
 }
 
-async function getSize(id, force, priority = 'nearby') {
-  const key = CACHE_PREFIX + id;
-  if (!force) {
-    const { [key]: cached } = await chrome.storage.local.get(key);
-    const ttl = cached?.status === 'found' ? TTL_FOUND_MS : TTL_NONE_MS;
-    if (cached?.v === CACHE_VERSION && Date.now() - cached.ts < ttl) {
-      pendingPriority.delete(id);
-      logEvent('cache hit', id, summarise(cached));
+function getSize(listing, force, priority = 'nearby') {
+  const key = listingKey(listing);
+  const existing = lookups.get(key);
+  if (existing) {
+    logEvent('joined', key, `already being looked up (${existing.state})`);
+    setPriority(key, priority);
+    // A retry that arrives during the cache check must not be answered from the cache.
+    if (force) existing.force = true;
+    return existing.promise;
+  }
+  const entry = { listing, state: 'checkingCache', priority: PRIORITY[priority] ?? PRIORITY.nearby, force, cancelRequested: false };
+  lookups.set(key, entry);
+  entry.promise = cachedOrLookup(key, entry)
+    .catch((err) => ({ status: 'error', message: String(err?.message || err) }))
+    .finally(() => lookups.delete(key));
+  return entry.promise;
+}
+
+function isFresh(cached) {
+  const ttl = cached?.status === 'found' ? TTL_FOUND_MS : TTL_NONE_MS;
+  return cached?.v === CACHE_VERSION && Date.now() - cached.ts < ttl;
+}
+
+async function cachedOrLookup(key, entry) {
+  const cacheKey = CACHE_PREFIX + key;
+  if (!entry.force) {
+    const { [cacheKey]: cached } = await chrome.storage.local.get(cacheKey);
+    if (!entry.force && isFresh(cached)) {
+      logEvent('cache hit', key, summarise(cached));
       return cached;
     }
   }
+  const result = await lookup(key, entry.listing).catch((err) => ({ status: 'error', message: String(err?.message || err) }));
+  result.ts = Date.now();
+  result.v = CACHE_VERSION;
+  if (result.status !== 'error' && result.status !== 'cancelled') await chrome.storage.local.set({ [cacheKey]: result });
+  return result;
+}
 
-  if (inFlight.has(id)) {
-    logEvent('joined', id, 'already being looked up');
-    setPriority(id, priority);
-  } else {
-    // A priority change that arrived during the cache check is newer than the request's.
-    priorities.set(id, pendingPriority.get(id) ?? PRIORITY[priority] ?? PRIORITY.nearby);
-    pendingPriority.delete(id);
-    const promise = lookup(id)
-      .catch((err) => ({ status: 'error', message: String(err?.message || err) }))
-      .then(async (result) => {
-        result.ts = Date.now();
-        result.v = CACHE_VERSION;
-        if (result.status !== 'error' && result.status !== 'cancelled') await chrome.storage.local.set({ [key]: result });
-        return result;
-      })
-      .finally(() => {
-        inFlight.delete(id);
-        priorities.delete(id);
-      });
-    inFlight.set(id, promise);
-  }
-  return inFlight.get(id);
+// ---------------------------------------------------------------------------
+// Search pages: sizes they already state, for every listing they show, from one read of
+// the results the page embeds (`data`) or, failing that, of the site's search API. One
+// request covers a whole map view. Read-only: it neither caches anything nor starts
+// lookups, so a lookup stays the only thing that writes a listing's cache entry.
+
+/** @returns {Promise<{ listing: object, lat: number|null, lng: number|null, result: object|null }[]>} */
+async function searchSizes(pageUrl, data) {
+  const site = siteForUrl(pageUrl);
+  if (!site) return [];
+  const json = data ?? (await fetchSearch(site, pageUrl));
+  if (!json) return [];
+  const entries = site.readSearch(json);
+  const cacheKeys = entries.map((entry) => CACHE_PREFIX + listingKey(entry.listing));
+  const cached = cacheKeys.length ? await chrome.storage.local.get(cacheKeys) : {};
+  return entries.map(({ listing, lat, lng, displaySize }, i) => {
+    const hit = cached[cacheKeys[i]];
+    const stated = sizeFromDisplaySize(displaySize);
+    return { listing, lat, lng, result: isFresh(hit) ? hit : stated ? found(stated, 'listing') : null };
+  });
+}
+
+async function fetchSearch(site, pageUrl) {
+  const url = site.searchApiUrl(pageUrl);
+  if (!url) return null;
+  logEvent('search', site.id, url);
+  const res = await fetch(url, { credentials: 'omit', signal: AbortSignal.timeout(TIMEOUTS.fetchMs) });
+  if (!res.ok) throw new Error(`${site.name} search returned HTTP ${res.status}`);
+  return res.json();
 }
 
 async function clearCache() {
@@ -366,7 +474,7 @@ async function cacheStats() {
 // → (last resort) estimate from the floorplan's room dimensions.
 
 function found(size, source) {
-  const { score, ...rest } = size;
+  const { score, floor, ...rest } = size;
   return {
     status: 'found',
     ...rest,
@@ -376,79 +484,103 @@ function found(size, source) {
   };
 }
 
-async function quickLookup(id) {
+async function quickLookup(key, listing) {
+  const site = SITES[listing.site];
   const settings = await getSettings();
-  setStage(id, 'fetching property page');
-  const res = await fetch(`https://www.rightmove.co.uk/properties/${id}`, {
+  setStage(key, 'fetching property page');
+  const res = await fetch(site.listingUrl(listing), {
     credentials: 'omit',
     signal: AbortSignal.timeout(TIMEOUTS.fetchMs),
   });
-  if (!res.ok) throw new Error(`Rightmove returned HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`${site.name} returned HTTP ${res.status}`);
 
-  const model = extractPageModel(await res.text());
-  const pd = model?.propertyData;
-  if (!pd) throw new Error('Could not read the property page');
+  const page = site.readListing(await res.text());
+  if (!page) throw new Error('Could not read the property page');
 
-  const fromListing = sizeFromSizings(pd.sizings);
+  const fromListing = sizeFromSizings(page.sizings);
   if (fromListing) return found(fromListing, 'listing');
 
   const checked = ['size section', 'description', 'key features'];
-  const fromText = sizeFromListingText(pd.text?.description, pd.keyFeatures || []);
+  const fromText = sizeFromListingText(page.description, page.keyFeatures);
   if (fromText) return found(fromText.size, fromText.source);
 
-  const floorplans = (pd.floorplans || []).filter((f) => f?.url && (!f.type || f.type === 'IMAGE'));
   const hasOcrWork =
-    (settings.ocrFloorplans && floorplans.length > 0) || (settings.scanBrochures && (pd.brochures || []).length > 0);
+    (settings.ocrFloorplans && page.floorplans.length > 0) || (settings.scanBrochures && page.brochures.length > 0);
   if (!hasOcrWork) return { status: 'none', checked };
 
-  return { status: 'needsOcr', pd, floorplans, settings, checked };
+  return { status: 'needsOcr', site, page, settings, checked };
 }
 
-async function ocrLookup(id, { pd, floorplans, settings, checked }) {
+async function ocrLookup(key, { site, page, settings, checked }) {
   const budget = { deadline: performance.now() + TIMEOUTS.ocrLookupMs, timedOut: false };
   const floorplanTexts = []; // best OCR text per floorplan, kept for the room-size estimate
-  if (settings.ocrFloorplans) {
-    const toScan = floorplans.slice(0, MAX_FLOORPLANS);
-    for (const [i, fp] of toScan.entries()) {
-      if (overBudget(id, budget)) break;
-      checked.push('floorplan');
-      try {
-        const passes = [];
-        for (const enhanced of [false, true]) {
-          if (overBudget(id, budget)) break;
-          setStage(id, `OCR floorplan ${i + 1}/${toScan.length}, ${enhanced ? 'enhanced' : 'first'} pass`);
-          const ocrText = await offscreen('ocrImage', { url: fp.url, enhanced });
-          const size = findSize(ocrText);
-          if (size) return found(size, 'floorplan');
-          passes.push(ocrText);
-        }
-        if (passes.length) floorplanTexts.push(passes.sort((a, b) => readRooms(b).rooms.length - readRooms(a).rooms.length)[0]);
-      } catch (err) {
-        noteFailure(budget, err);
-        console.warn('Floorplan OCR failed', id, fp.url, err);
+  const floorAreas = new Map(); // floor name -> area, from figures labelled as one floor's
+  const floorsNamed = new Set(); // every floor the plans name, with an area or not
+  const toScan = settings.ocrFloorplans ? page.floorplans.slice(0, MAX_FLOORPLANS) : [];
+  for (const [i, url] of toScan.entries()) {
+    if (overBudget(key, budget)) break;
+    checked.push('floorplan');
+    try {
+      const passes = [];
+      for (const enhanced of [false, true]) {
+        if (overBudget(key, budget)) break;
+        setStage(key, `OCR floorplan ${i + 1}/${toScan.length}, ${enhanced ? 'enhanced' : 'first'} pass`);
+        const ocrText = await offscreen('ocrImage', { url, enhanced });
+        const size = findSize(ocrText);
+        if (size && !size.floor) return found(size, 'floorplan');
+        passes.push(ocrText);
+        for (const area of findFloorAreas(ocrText)) if (!floorAreas.has(area.floor)) floorAreas.set(area.floor, area);
+        namedFloors(ocrText).forEach((floor) => floorsNamed.add(floor));
+        if (size) break; // this plan states one floor's area; a second pass won't add a total
       }
+      if (passes.length) floorplanTexts.push(passes.sort((a, b) => readRooms(b).rooms.length - readRooms(a).rooms.length)[0]);
+    } catch (err) {
+      noteFailure(budget, err);
+      console.warn('Floorplan OCR failed', key, url, err);
     }
   }
 
-  if (settings.scanBrochures && !overBudget(id, budget)) {
-    const size = await searchBrochures(id, pd.brochures || [], settings, checked, budget);
+  // Plans that state an area per floor and no total: add the floors up, or, for a home
+  // that plainly has one floor, that floor is the whole of it. One floor's area out of
+  // several is only part of the answer.
+  const floors = [...floorAreas.values()];
+  if (floors.length >= 2) return found(addFloors(floors), 'floorplan');
+  const oneFloorHome = floors.length === 1 && toScan.length === 1 && floorsNamed.size <= 1;
+  if (oneFloorHome) return found(floors[0], 'floorplan');
+
+  if (settings.scanBrochures && !overBudget(key, budget)) {
+    const size = await searchBrochures(key, site, page.brochures, settings, checked, budget);
     if (size) return size;
   }
 
   if (floorplanTexts.length) {
-    setStage(id, 'estimating from room sizes');
-    const estimate = estimateFromRooms(floorplanTexts, { bedrooms: pd.bedrooms });
+    setStage(key, 'estimating from room sizes');
+    const estimate = estimateFromRooms(floorplanTexts, { bedrooms: page.bedrooms });
     if (estimate) return found(estimate, 'roomEstimate');
   }
 
   // Not "none": something was left unread, so don't cache it; the badge offers a retry.
   if (budget.timedOut) return { status: 'error', message: 'Gave up: reading the floorplan or brochure took too long' };
+  // Only one floor's area is known: show it, but as the low-confidence part-answer it is.
+  if (floors.length) return found({ ...floors[0], confidence: PART_AREA_CONFIDENCE }, 'floorplan');
   return { status: 'none', checked: [...new Set(checked)] };
 }
 
-function overBudget(id, budget) {
+// The sum of the areas each floor states, scored by the least certain of them.
+function addFloors(floors) {
+  const sqft = floors.reduce((sum, floor) => sum + floor.sqft, 0);
+  return {
+    sqft,
+    sqm: Math.round(sqft / SQFT_PER_SQM),
+    fromMetric: floors.some((floor) => floor.fromMetric),
+    snippet: floors.map((floor) => floor.snippet).join(' + '),
+    score: Math.min(...floors.map((floor) => floor.score)),
+  };
+}
+
+function overBudget(key, budget) {
   if (performance.now() < budget.deadline) return false;
-  if (!budget.timedOut) setStage(id, `stopping: OCR time limit (${TIMEOUTS.ocrLookupMs / 1000}s) reached`);
+  if (!budget.timedOut) setStage(key, `stopping: OCR time limit (${TIMEOUTS.ocrLookupMs / 1000}s) reached`);
   budget.timedOut = true;
   return true;
 }
@@ -457,34 +589,32 @@ function noteFailure(budget, err) {
   if (err?.name === 'TimeoutError' || /timed out/i.test(String(err?.message))) budget.timedOut = true;
 }
 
-function isRightmoveHosted(url) {
-  return /(^|\.)rightmove\.co\.uk$/i.test(url.hostname);
-}
-
-async function canFetchBrochure(url, settings) {
-  if (isRightmoveHosted(url)) return true;
+// Brochures on the listing's own site are always read; others need the user's opt-in
+// and Chrome's permission for that origin.
+async function canFetchBrochure(url, site, settings) {
+  if (site.matches(url)) return true;
   if (!settings.externalBrochures) return false;
   return chrome.permissions.contains({ origins: [`${url.origin}/*`] });
 }
 
-async function searchBrochures(id, brochures, settings, checked, budget) {
+async function searchBrochures(key, site, brochures, settings, checked, budget) {
   const allowed = [];
-  for (const b of brochures) {
-    const url = safeExternalUrl(b.url);
+  for (const link of brochures) {
+    const url = safeExternalUrl(link);
     if (!url) {
-      console.warn('Skipping brochure link that is not a public https URL', id, b.url);
+      console.warn('Skipping brochure link that is not a public https URL', key, link);
       continue;
     }
-    if (await canFetchBrochure(url, settings)) allowed.push(url);
+    if (await canFetchBrochure(url, site, settings)) allowed.push(url);
   }
-  // Rightmove-hosted PDFs first: they're the most likely to be the agent's particulars.
-  allowed.sort((a, b) => isRightmoveHosted(b) - isRightmoveHosted(a));
+  // Brochures the site hosts first: they're the most likely to be the agent's particulars.
+  allowed.sort((a, b) => site.matches(b) - site.matches(a));
 
   for (const url of allowed) {
-    if (overBudget(id, budget)) break;
+    if (overBudget(key, budget)) break;
     checked.push('brochure');
     try {
-      setStage(id, `reading brochure (${url.hostname})`);
+      setStage(key, `reading brochure (${url.hostname})`);
       const doc = await offscreen('readDocument', { url: url.href });
       const size = findSize(doc.text);
       if (size) return found(size, 'brochure');
@@ -494,15 +624,15 @@ async function searchBrochures(id, brochures, settings, checked, budget) {
         const pages = [];
         for (let p = doc.numPages; p >= 1 && pages.length < MAX_BROCHURE_OCR_PAGES; p--) pages.push(p);
         for (const page of pages) {
-          if (overBudget(id, budget)) break;
-          setStage(id, `OCR brochure page ${page}/${doc.numPages}`);
+          if (overBudget(key, budget)) break;
+          setStage(key, `OCR brochure page ${page}/${doc.numPages}`);
           const ocrSize = findSize(await offscreen('ocrPdfPage', { url: url.href, page }));
           if (ocrSize) return found(ocrSize, 'brochureOcr');
         }
       }
     } catch (err) {
       noteFailure(budget, err);
-      console.warn('Brochure scan failed', id, url.href, err);
+      console.warn('Brochure scan failed', key, url.href, err);
     }
   }
   return null;

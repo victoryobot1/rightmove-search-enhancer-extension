@@ -82,7 +82,55 @@
   font-size: 14px;
 }
 
+/* Map view: the card a pin opens lays its details out as a column; keep the badge its own width. */
+.rmse-size--card {
+  align-self: flex-start;
+  margin: 8px 0 0;
+}
+
 /* Properties the user hid on Rightmove: collapse the "You've hidden this property" panel. */
 .rmse-collapse-hidden [data-rmse-hidden] {
   display: none !important;
+}
+
+/* Map pins: a size label under the price pin, drawn from attributes the engine sets on the
+   pin's wrapper (Rightmove's CSS already uses the pin's own ::before and ::after). It takes
+   no space and no clicks, so the pin's size, hit area and stacking stay Rightmove's. */
+[data-rmse-size] {
+  position: relative;
+}
+
+[data-rmse-size]::after {
+  content: attr(data-rmse-size);
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 2px;
+  padding: 0 4px;
+  border: 1px solid #9fd8c9;
+  border-radius: 3px;
+  background: #e3f4f0;
+  color: #00315a;
+  font: 600 11px/15px system-ui, sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+[data-rmse-band='medium']::after {
+  background: #fff6dc;
+  border-color: #f1d27a;
+  color: #5a4000;
+}
+
+[data-rmse-band='low']::after {
+  background: #ffe9d6;
+  border-color: #f5b583;
+  color: #6b3000;
+}
+
+[data-rmse-band='verylow']::after {
+  background: #fde4e4;
+  border-color: #f0a3a3;
+  color: #7a1010;
 }
