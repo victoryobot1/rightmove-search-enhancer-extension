@@ -1,6 +1,6 @@
 // Finding the total floor area in free text (descriptions, OCR output, brochures).
 import { test, equal } from '../lib/t.js';
-import { findSize, sizeFromDisplaySize, sizeFromListingText, sizeFromSizings } from '/src/extract.js';
+import { findFloorAreas, findSize, namedFloors, sizeFromDisplaySize, sizeFromListingText, sizeFromSizings } from '/src/extract.js';
 
 const CASES = [
   // Floorplan totals, including common OCR misreads
@@ -88,3 +88,25 @@ test('description wins when its wording is stronger', () =>
 
 test('description context no longer leaks into the first key feature', () =>
   equal(listingText('Includes a large garden', ['800 sq ft']), [800, 'keyFeatures']));
+
+// Figures labelled as one floor's area, which floorplans state when they give no total.
+test('findSize: a figure labelled with one floor says which floor', () =>
+  equal(
+    [
+      findSize('GROUND FLOOR\n\nAPPROX. FLOOR\n\nAREA 321 SQ.FT\n\n(29.9 SQ.M.)')?.floor,
+      findSize('Ground floor 520 sq ft. First floor 480 sq ft. Total floor area 1000 sq ft')?.floor,
+      findSize('Approx Gross Internal Area 720 sq ft')?.floor,
+      // Real OCR (listing 88958562): the floor names where the flat is, not what 1373 measures.
+      findSize('Balcony\n\nThird Floor\n\nGondar Gardens, NW6\n\nApproximate Area = 1373 sq ft / 127.5 sqm')?.floor,
+    ],
+    ['ground', null, null, null],
+  ));
+
+test('findFloorAreas: one area per floor', () =>
+  equal(
+    findFloorAreas('GROUND FLOOR 520 sq.ft. (48.3 sq.m.) approx. FIRST FLOOR 480 sq.ft. (44.6 sq.m.) approx.').map((a) => [a.floor, a.sqft]),
+    [['ground', 520], ['first', 480]],
+  ));
+
+test('namedFloors: the floors a plan names', () =>
+  equal([...namedFloors('Ground Floor\nBEDROOM\nFirst Floor\nground floor')], ['ground', 'first']));

@@ -35,7 +35,7 @@ There are three execution contexts, which communicate with `chrome.runtime` mess
 - **`src/offscreen.js`** (offscreen document): Tesseract.js OCR (PSM 11 sparse text, upscaled canvas) and pdf.js. It only accepts messages from the extension itself (not tabs), caps download sizes, and refuses brochure redirects to non-public URLs (`safeUrl.js` `safeExternalUrl`).
 
 The pure logic is in modules that the tests import directly:
-- **`extract.js`**: regex-based total-area detection (`findSize`) with context scoring. "Total/gross internal/approx" wording scores up; garden/garage/single-room/single-floor wording scores down. It also handles common OCR misreads of units (`m?`, `m*`, `ft?`, `sq'`, `sq"`, `1.373` meaning 1,373) and merges ft/m² pairs.
+- **`extract.js`**: regex-based total-area detection (`findSize`) with context scoring. "Total/gross internal/approx" wording scores up; garden/garage/single-room/single-floor wording scores down. It also handles common OCR misreads of units (`m?`, `m*`, `ft?`, `sq'`, `sq"`, `1.373` meaning 1,373) and merges ft/m² pairs. A figure labelled with one floor (only area wording between the label and the number) comes back with `floor` set; the OCR stage treats it as part of the total, not the total.
 - **`estimate.js`**: sums room dimensions from floorplan OCR text (with fixes for OCR quirks), adds a hallway/wall allowance, and caps confidence at 75%.
 - **`pageModel.js`**: decodes Rightmove's flattened `window.__PAGE_MODEL` encoding.
 

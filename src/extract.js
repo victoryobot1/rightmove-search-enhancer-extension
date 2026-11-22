@@ -25,6 +25,7 @@ const ROOM_RE = /\b(bedroom|reception|kitchen|lounge|dining|bathroom|room)\b/;
 const BEDROOM_COUNT_RE = /\b(\d+|one|two|three|four|five|six|seven|studio)[\s-]*(bed(room)?s?)\b/g;
 const PROPERTY_RE = /\b(apartment|flat|house|home|property|maisonette|duplex|penthouse|cottage|bungalow|studio|townhouse|residence)\b/;
 const SINGLE_FLOOR_RE = /\b(ground|first|second|third|lower|upper|top|basement)\s+floor\b/;
+const FLOOR_NAMES_RE = new RegExp(SINGLE_FLOOR_RE.source, 'gi');
 const EXCLUDING_RE = /\b(exclud\w*|excl\.?|not including)\b/;
 const LIVING_AFTER_RE = /^\W*(of\s+)?(living|internal|accommodation|floor\s?space|interior)\b/;
 
@@ -75,12 +76,25 @@ function mergeUnitPairs(candidates) {
   return candidates.filter((c) => !dropped.has(c));
 }
 
-/**
- * Returns the most likely total floor area mentioned in `text`, or null.
- * @returns {{sqft:number, sqm:number, fromMetric:boolean, snippet:string} | null}
- */
-export function findSize(text) {
-  if (!text) return null;
+// The floor a figure is labelled with ("GROUND FLOOR approx. floor area 321 sq ft"), or
+// null when it's a total or carries no floor label. Floorplans drawn one floor per image,
+// or that don't add their floors up, state an area per floor and no total. Only area
+// wording may sit between the label and the figure: in "Third Floor / Gondar Gardens, NW6
+// / Approximate Area = 1373 sq ft" the floor is where the flat is, and 1373 is its total.
+const AREA_WORDS_ONLY_RE = /^(?:\W|approx\w*|floor|area|space|size|measur\w*)*$/i;
+
+function floorOf(text, start) {
+  const before = text.slice(Math.max(0, start - 80), start).toLowerCase();
+  if (TOTAL_RE.test(before)) return null;
+  const label = [...before.slice(-60).matchAll(FLOOR_NAMES_RE)].at(-1);
+  if (!label) return null;
+  const between = before.slice(-60).slice(label.index + label[0].length);
+  return AREA_WORDS_ONLY_RE.test(between) ? label[1] : null;
+}
+
+/** Every plausible area figure in `text`, scored, with metric/imperial duplicates merged. */
+function sizeCandidates(text) {
+  if (!text) return [];
   const candidates = [];
 
   for (const m of text.matchAll(SIZE_RE)) {
@@ -108,21 +122,44 @@ export function findSize(text) {
       fromMetric: !isFt,
       // Prefer the agent's own imperial figure over a converted metric one.
       score: scoreCandidate(text, start, end) + (isFt ? 0.5 : 0),
+      floor: floorOf(text, start),
       snippet: text.slice(Math.max(0, start - 50), end + 15).replace(/\s+/g, ' ').trim(),
     });
   }
+  return mergeUnitPairs(candidates).filter((c) => c.score >= -1);
+}
 
-  const ranked = mergeUnitPairs(candidates).sort((a, b) => b.score - a.score || b.sqft - a.sqft);
-  const best = ranked[0];
-  if (!best || best.score < -1) return null;
+const toSize = (c) => ({
+  sqft: Math.round(c.sqft),
+  sqm: Math.round(c.sqft / SQFT_PER_SQM),
+  fromMetric: c.fromMetric,
+  snippet: c.snippet,
+  score: c.score, // context score: higher means "total"/"gross internal" wording nearby
+  floor: c.floor, // set when the figure is labelled as one floor's area, not the total
+});
 
-  return {
-    sqft: Math.round(best.sqft),
-    sqm: Math.round(best.sqft / SQFT_PER_SQM),
-    fromMetric: best.fromMetric,
-    snippet: best.snippet,
-    score: best.score, // context score: higher means "total"/"gross internal" wording nearby
-  };
+/**
+ * Returns the most likely total floor area mentioned in `text`, or null. Check `floor`:
+ * a figure labelled with one floor ("Ground floor … 321 sq ft") is only that floor's area.
+ * @returns {{sqft:number, sqm:number, fromMetric:boolean, snippet:string, score:number, floor:string|null} | null}
+ */
+export function findSize(text) {
+  const best = sizeCandidates(text).sort((a, b) => b.score - a.score || b.sqft - a.sqft)[0];
+  return best ? toSize(best) : null;
+}
+
+/** The area stated for each floor in `text` (best-scoring figure per floor name). */
+export function findFloorAreas(text) {
+  const byFloor = new Map();
+  for (const c of sizeCandidates(text)) {
+    if (c.floor && !(byFloor.get(c.floor)?.score >= c.score)) byFloor.set(c.floor, c);
+  }
+  return [...byFloor.values()].map(toSize);
+}
+
+/** The floors `text` names ("Ground Floor", "First Floor", …). */
+export function namedFloors(text) {
+  return new Set([...String(text || '').matchAll(FLOOR_NAMES_RE)].map((m) => m[1].toLowerCase()));
 }
 
 /**

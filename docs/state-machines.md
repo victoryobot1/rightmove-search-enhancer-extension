@@ -61,14 +61,18 @@ There is a 30 s budget per lookup (`budget.deadline`) and a 15 s limit per offsc
 | State | Event | Next state | Side effects |
 |---|---|---|---|
 | floorplan *i*, normal pass | `findSize` finds a total | settled (found, floorplan) | — |
+| floorplan *i*, any pass | the best figure is labelled as one floor ("GROUND FLOOR approx. floor area 321 sq ft") | floorplan *i+1* | the floor's area is kept, with every floor the plan names; no enhanced pass for this plan |
 | floorplan *i*, normal pass | nothing | floorplan *i*, enhanced pass | `offscreen('ocrImage', {enhanced: true})` |
 | floorplan *i*, enhanced pass | nothing | floorplan *i+1* (max 3), then brochures | the OCR text with the most rooms is kept for the estimate |
 | floorplan pass | throws | next floorplan | a timeout sets `budget.timedOut` |
 | brochures (on the listing's own site first) | text gives a total | settled (found, brochure) | `offscreen('readDocument')` |
 | brochure PDF, no total in text | OCR of the last ≤4 pages gives a total | settled (found, brochureOcr) | `offscreen('ocrPdfPage')` |
 | any | budget used up | stop reading | `budget.timedOut = true` |
+| floorplans done | areas kept for two or more floors | settled (found, floorplan) | their sum, scored by the least certain |
+| floorplans done | one floor's area, one floorplan, no other floor named | settled (found, floorplan) | a one-floor home: that area is the total |
 | sources done | floorplan text with room sizes | settled (found, roomEstimate) | — |
 | sources done | `timedOut` | settled (error "Gave up…") | not cached, so it retries next time |
+| sources done | one floor's area kept (of a home with more floors) | settled (found, floorplan) | that area at 40% confidence: a part-answer, shown red |
 | sources done | otherwise | settled (none) | cached for 1 day |
 
 ## M4. Offscreen document and OCR engine: `ensureOffscreen` / `offscreen()` in `background.js`, plus `offscreen.js`

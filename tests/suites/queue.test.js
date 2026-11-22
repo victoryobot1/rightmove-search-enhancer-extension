@@ -42,7 +42,9 @@ globalThis.chrome = {
       events.push({ t: now(), kind: 'ocr-start', id });
       await sleep(OCR_MS);
       counters.ocr--;
-      return { result: fixtures.get(id)?.planText ?? '' };
+      // Floorplan n of a listing ("<id>-<n>.jpeg") reads as planTexts[n - 1], else planText.
+      const n = Number((msg.url || '').match(/-(\d+)\.jpeg$/)?.[1] ?? 1);
+      return { result: fixtures.get(id)?.planTexts?.[n - 1] ?? fixtures.get(id)?.planText ?? '' };
     },
   },
   storage: {
@@ -90,6 +92,19 @@ const needsOcr = () =>
     planText: 'Approx Gross Internal Area 720 sq ft',
   }));
 const nothingToRead = () => listing(() => ({}));
+const withFloorplans = (planTexts, bedrooms = 1) =>
+  listing((id) => ({
+    bedrooms,
+    floorplans: planTexts.map((_, i) => ({ url: `https://media.rightmove.co.uk/fp/${id}-${i + 1}.jpeg`, type: 'IMAGE' })),
+    planTexts,
+  }));
+
+// Real Tesseract output for listing 95508042, a 3-bed flat drawn one floor per image: the
+// ground floor states its area; the first floor (three bedrooms) states none.
+const GROUND_FLOOR_PLAN =
+  "RECEPTION ROOM\n\n16'x 12'8\n\n4.87m x 3.86m\n\n=\n\n| =\n\nv\n\nHALLWAY\n\nES\n\nST\n\nKITCHEN\n\n=\n\n10' x 8'4\n\n’\n\n3.05m x 2.53m\n\n-— —\n\n| WC\n\nj=\n\ncm\n\nCE ——— ee 4\n\nGROUND FLOOR\n\nAPPROX. FLOOR\n\nAREA 321 SQ.FT\n\n(29.9 SQ.M.)\n";
+const FIRST_FLOOR_PLAN =
+  "BEDROOM\n\nBEDROOM\n\n98 x7\n\n294m x 2.14m\n\n12'9 x 10'6\n\n3.88m x 3.19m\n\nLANDING] |\n\nBEDROOM\n\n12'8 x 10'6\n\n———\n\n3.86m x 3.19m\n\n=\n\n|\n";
 const manyFloorplansNoTotal = () =>
   listing((id) => ({
     floorplans: [1, 2, 3].map((n) => ({ url: `https://media.rightmove.co.uk/fp/${id}-${n}.jpeg`, type: 'IMAGE' })),
@@ -325,4 +340,31 @@ test('old "size:<id>" cache entries are deleted when the extension updates', asy
   for (const listener of installedListeners) listener({ reason: 'update' });
   await sleep(20);
   equal(['size:555' in store, 'size:rightmove:556' in store], [false, true], '[old key kept, new key kept]');
+});
+
+test('one floor\'s area is not taken as the total of a home on several floors', async () => {
+  const result = await getSize(withFloorplans([GROUND_FLOOR_PLAN, FIRST_FLOOR_PLAN], 3));
+  equal(result.source, 'roomEstimate', 'source');
+  assert(result.sqft > 321 * 1.5 && result.sqft < 1000, `estimated ${result.sqft} sq ft from both floors`);
+  await idle();
+  return `${result.sqft} sq ft (ground floor alone: 321)`;
+});
+
+test('areas stated for two floors are added up', async () => {
+  const firstFloor = 'FIRST FLOOR\n\nAPPROX. FLOOR\n\nAREA 300 SQ.FT\n\n(27.9 SQ.M.)';
+  const result = await getSize(withFloorplans([GROUND_FLOOR_PLAN, firstFloor]));
+  equal([result.sqft, result.source], [621, 'floorplan']);
+  await idle();
+});
+
+test('the one floor of a single-floor home is its total', async () => {
+  const result = await getSize(withFloorplans(['GROUND FLOOR FLAT\n\nAPPROX. FLOOR AREA 650 SQ.FT\n\n(60.4 SQ.M.)']));
+  equal([result.sqft, result.source], [650, 'floorplan']);
+  await idle();
+});
+
+test('when only one floor\'s area can be read and no rooms can, it is shown with low confidence', async () => {
+  const result = await getSize(withFloorplans(['GROUND FLOOR\n\nAPPROX. FLOOR\n\nAREA 321 SQ.FT\n\n(29.9 SQ.M.)', 'LANDING']));
+  equal([result.sqft, result.source, result.confidence], [321, 'floorplan', 40]);
+  await idle();
 });

@@ -1,5 +1,13 @@
 import './shared/listing.js';
-import { findSize, sizeFromDisplaySize, sizeFromListingText, sizeFromSizings } from './extract.js';
+import {
+  SQFT_PER_SQM,
+  findFloorAreas,
+  findSize,
+  namedFloors,
+  sizeFromDisplaySize,
+  sizeFromListingText,
+  sizeFromSizings,
+} from './extract.js';
 import { estimateFromRooms, readRooms } from './estimate.js';
 import { getSettings } from './settings.js';
 import { safeExternalUrl } from './safeUrl.js';
@@ -9,7 +17,7 @@ const { listingKey } = globalThis;
 
 const CACHE_PREFIX = 'size:'; // + listingKey(listing), e.g. "size:rightmove:95556576"
 // Bump when extraction rules change so results cached by older versions are looked up again.
-const CACHE_VERSION = 6;
+const CACHE_VERSION = 7;
 const TTL_FOUND_MS = 14 * 24 * 60 * 60 * 1000;
 const TTL_NONE_MS = 24 * 60 * 60 * 1000; // agents often add floorplans after listing
 // Fast lane: fetch the property page and check the Size field + description (network only).
@@ -50,6 +58,10 @@ const BASE_CONFIDENCE = {
   floorplan: 85,
   brochureOcr: 78,
 };
+
+// A floorplan that states only one floor's area, of a home with more floors, and nothing
+// better found: shown, but red.
+const PART_AREA_CONFIDENCE = 40;
 
 function confidenceFor(source, size) {
   if (source === 'listing') return size.fromMetric ? 95 : 97;
@@ -462,7 +474,7 @@ async function cacheStats() {
 // → (last resort) estimate from the floorplan's room dimensions.
 
 function found(size, source) {
-  const { score, ...rest } = size;
+  const { score, floor, ...rest } = size;
   return {
     status: 'found',
     ...rest,
@@ -502,28 +514,39 @@ async function quickLookup(key, listing) {
 async function ocrLookup(key, { site, page, settings, checked }) {
   const budget = { deadline: performance.now() + TIMEOUTS.ocrLookupMs, timedOut: false };
   const floorplanTexts = []; // best OCR text per floorplan, kept for the room-size estimate
-  if (settings.ocrFloorplans) {
-    const toScan = page.floorplans.slice(0, MAX_FLOORPLANS);
-    for (const [i, url] of toScan.entries()) {
-      if (overBudget(key, budget)) break;
-      checked.push('floorplan');
-      try {
-        const passes = [];
-        for (const enhanced of [false, true]) {
-          if (overBudget(key, budget)) break;
-          setStage(key, `OCR floorplan ${i + 1}/${toScan.length}, ${enhanced ? 'enhanced' : 'first'} pass`);
-          const ocrText = await offscreen('ocrImage', { url, enhanced });
-          const size = findSize(ocrText);
-          if (size) return found(size, 'floorplan');
-          passes.push(ocrText);
-        }
-        if (passes.length) floorplanTexts.push(passes.sort((a, b) => readRooms(b).rooms.length - readRooms(a).rooms.length)[0]);
-      } catch (err) {
-        noteFailure(budget, err);
-        console.warn('Floorplan OCR failed', key, url, err);
+  const floorAreas = new Map(); // floor name -> area, from figures labelled as one floor's
+  const floorsNamed = new Set(); // every floor the plans name, with an area or not
+  const toScan = settings.ocrFloorplans ? page.floorplans.slice(0, MAX_FLOORPLANS) : [];
+  for (const [i, url] of toScan.entries()) {
+    if (overBudget(key, budget)) break;
+    checked.push('floorplan');
+    try {
+      const passes = [];
+      for (const enhanced of [false, true]) {
+        if (overBudget(key, budget)) break;
+        setStage(key, `OCR floorplan ${i + 1}/${toScan.length}, ${enhanced ? 'enhanced' : 'first'} pass`);
+        const ocrText = await offscreen('ocrImage', { url, enhanced });
+        const size = findSize(ocrText);
+        if (size && !size.floor) return found(size, 'floorplan');
+        passes.push(ocrText);
+        for (const area of findFloorAreas(ocrText)) if (!floorAreas.has(area.floor)) floorAreas.set(area.floor, area);
+        namedFloors(ocrText).forEach((floor) => floorsNamed.add(floor));
+        if (size) break; // this plan states one floor's area; a second pass won't add a total
       }
+      if (passes.length) floorplanTexts.push(passes.sort((a, b) => readRooms(b).rooms.length - readRooms(a).rooms.length)[0]);
+    } catch (err) {
+      noteFailure(budget, err);
+      console.warn('Floorplan OCR failed', key, url, err);
     }
   }
+
+  // Plans that state an area per floor and no total: add the floors up, or, for a home
+  // that plainly has one floor, that floor is the whole of it. One floor's area out of
+  // several is only part of the answer.
+  const floors = [...floorAreas.values()];
+  if (floors.length >= 2) return found(addFloors(floors), 'floorplan');
+  const oneFloorHome = floors.length === 1 && toScan.length === 1 && floorsNamed.size <= 1;
+  if (oneFloorHome) return found(floors[0], 'floorplan');
 
   if (settings.scanBrochures && !overBudget(key, budget)) {
     const size = await searchBrochures(key, site, page.brochures, settings, checked, budget);
@@ -538,7 +561,21 @@ async function ocrLookup(key, { site, page, settings, checked }) {
 
   // Not "none": something was left unread, so don't cache it; the badge offers a retry.
   if (budget.timedOut) return { status: 'error', message: 'Gave up: reading the floorplan or brochure took too long' };
+  // Only one floor's area is known: show it, but as the low-confidence part-answer it is.
+  if (floors.length) return found({ ...floors[0], confidence: PART_AREA_CONFIDENCE }, 'floorplan');
   return { status: 'none', checked: [...new Set(checked)] };
+}
+
+// The sum of the areas each floor states, scored by the least certain of them.
+function addFloors(floors) {
+  const sqft = floors.reduce((sum, floor) => sum + floor.sqft, 0);
+  return {
+    sqft,
+    sqm: Math.round(sqft / SQFT_PER_SQM),
+    fromMetric: floors.some((floor) => floor.fromMetric),
+    snippet: floors.map((floor) => floor.snippet).join(' + '),
+    score: Math.min(...floors.map((floor) => floor.score)),
+  };
 }
 
 function overBudget(key, budget) {
